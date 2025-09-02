@@ -2,52 +2,56 @@
 import React, { useState } from 'react';
 import { ShoppingCart, User, Menu, X } from 'lucide-react';
 
-const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading }) => {
+const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading, onNavigate }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const headerStyle = {
-    backgroundColor: 'rgba(15, 20, 25, 0.95)',
-    backdropFilter: 'blur(10px)',
-    color: 'white',
-    position: 'sticky',
-    top: 0,
-    zIndex: 50,
-    borderBottom: '1px solid rgba(245, 158, 11, 0.1)'
+    position: 'fixed',
+    top: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 1000,
+    width: '90%',
+    maxWidth: '1000px'
   };
 
-  const containerStyle = {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '0 2rem'
+  const navContainerStyle = {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backdropFilter: 'blur(20px)',
+    borderRadius: '60px',
+    padding: '12px 24px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
   };
 
   const flexStyle = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: '5rem'
+    gap: '2rem'
   };
 
   const logoStyle = {
-    fontSize: '1.8rem',
+    fontSize: '1.5rem',
     fontWeight: '700',
-    color: '#F59E0B',
-    letterSpacing: '0.05em',
+    color: '#D4AF37',
+    letterSpacing: '0.1em',
     textDecoration: 'none'
   };
 
-  const navStyle = {
+  const navLinksStyle = {
     display: 'flex',
     alignItems: 'center',
     gap: '2rem',
-    '@media (max-width: 768px)': {
-      display: 'none'
-    }
+    listStyle: 'none',
+    margin: 0,
+    padding: 0
   };
 
   const navLinkStyle = {
-    color: '#ffffff',
+    color: 'rgba(255, 255, 255, 0.9)',
     textDecoration: 'none',
+    fontSize: '0.95rem',
     fontWeight: '500',
     transition: 'color 0.3s ease',
     cursor: 'pointer'
@@ -56,43 +60,65 @@ const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading }) => 
   const actionsStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '1rem'
+    gap: '0.75rem'
   };
 
-  const buttonStyle = {
+  const iconButtonStyle = {
     background: 'none',
     border: 'none',
-    color: 'white',
+    color: 'rgba(255, 255, 255, 0.9)',
     cursor: 'pointer',
-    padding: '0.75rem',
+    padding: '8px',
+    borderRadius: '50%',
+    transition: 'all 0.3s ease',
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
-    gap: '0.5rem',
-    borderRadius: '0.5rem',
-    transition: 'all 0.3s ease'
+    justifyContent: 'center'
   };
 
   const cartButtonStyle = {
-    ...buttonStyle,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    border: '1px solid rgba(245, 158, 11, 0.3)'
+    ...iconButtonStyle,
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+    border: '1px solid rgba(212, 175, 55, 0.3)'
   };
 
   const badgeStyle = {
     position: 'absolute',
-    top: '-8px',
-    right: '-8px',
-    backgroundColor: '#FBBF24',
-    color: '#111827',
-    fontSize: '0.75rem',
+    top: '-4px',
+    right: '-4px',
+    backgroundColor: '#D4AF37',
+    color: '#000000',
+    fontSize: '0.7rem',
     borderRadius: '50%',
-    width: '1.25rem',
-    height: '1.25rem',
+    width: '18px',
+    height: '18px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontWeight: '600'
+    fontWeight: '600',
+    border: '2px solid rgba(0, 0, 0, 0.8)'
+  };
+
+  const mobileMenuStyle = {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backdropFilter: 'blur(20px)',
+    borderRadius: '20px',
+    marginTop: '10px',
+    padding: '1.5rem',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+  };
+
+  const mobileNavStyle = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+    alignItems: 'center'
   };
 
   const getUserDisplayText = () => {
@@ -101,64 +127,135 @@ const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading }) => 
       const name = user.displayName || user.email.split('@')[0];
       return name.length > 10 ? name.substring(0, 10) + '...' : name;
     }
-    return 'Login';
+    return null; // Don't show text, just icon
   };
 
   return (
     <header style={headerStyle}>
-      <div style={containerStyle}>
+      <div style={navContainerStyle}>
         <div style={flexStyle}>
           {/* Logo */}
           <div style={logoStyle}>
             CARPORE
           </div>
 
-          {/* Navigation */}
-          <nav style={navStyle}>
-            <a href="#home" style={navLinkStyle} onMouseOver={(e) => e.target.style.color = '#F59E0B'} onMouseOut={(e) => e.target.style.color = '#ffffff'}>
-              Home
-            </a>
-            <a href="#products" style={navLinkStyle} onMouseOver={(e) => e.target.style.color = '#F59E0B'} onMouseOut={(e) => e.target.style.color = '#ffffff'}>
-              Products
-            </a>
-            <a href="#about" style={navLinkStyle} onMouseOver={(e) => e.target.style.color = '#F59E0B'} onMouseOut={(e) => e.target.style.color = '#ffffff'}>
-              About
-            </a>
-            <a href="#contact" style={navLinkStyle} onMouseOver={(e) => e.target.style.color = '#F59E0B'} onMouseOut={(e) => e.target.style.color = '#ffffff'}>
-              Contact
-            </a>
+          {/* Desktop Navigation */}
+          <nav style={{ display: window.innerWidth > 768 ? 'block' : 'none' }}>
+            <ul style={navLinksStyle}>
+              <li>
+                <a 
+                  href="#home" 
+                  style={navLinkStyle}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate?.('home');
+                  }}
+                  onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+                  onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
+                >
+                  Home
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#products" 
+                  style={navLinkStyle}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate?.('products');
+                  }}
+                  onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+                  onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
+                >
+                  Products
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#about" 
+                  style={navLinkStyle}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate?.('about');
+                  }}
+                  onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+                  onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
+                >
+                  About
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#contact" 
+                  style={navLinkStyle}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onNavigate?.('contact');
+                  }}
+                  onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+                  onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
+                >
+                  Contact
+                </a>
+              </li>
+            </ul>
           </nav>
 
           {/* Actions */}
           <div style={actionsStyle}>
             {/* User Button */}
             <button 
-              style={buttonStyle} 
+              style={iconButtonStyle} 
               onClick={onLoginClick}
               title={user ? `Logged in as ${user.email}` : 'Click to login'}
-              onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(245, 158, 11, 0.1)'}
-              onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+                e.target.style.color = '#D4AF37';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              }}
             >
               <User size={20} />
-              <span style={{fontSize: '0.875rem', display: window.innerWidth > 640 ? 'block' : 'none'}}>
-                {getUserDisplayText()}
-              </span>
             </button>
 
             {/* Cart Button */}
-            <button style={cartButtonStyle} onClick={onCartClick}>
+            <button 
+              style={cartButtonStyle} 
+              onClick={onCartClick}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.2)';
+                e.target.style.borderColor = 'rgba(212, 175, 55, 0.5)';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+                e.target.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+              }}
+            >
               <ShoppingCart size={20} />
               {cartCount > 0 && (
                 <span style={badgeStyle}>
-                  {cartCount}
+                  {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
             </button>
 
             {/* Mobile Menu Button */}
             <button 
-              style={{...buttonStyle, display: window.innerWidth <= 768 ? 'flex' : 'none'}}
+              style={{
+                ...iconButtonStyle, 
+                display: window.innerWidth <= 768 ? 'flex' : 'none'
+              }}
               onClick={() => setMenuOpen(!menuOpen)}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+                e.target.style.color = '#D4AF37';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              }}
             >
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -167,26 +264,60 @@ const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading }) => 
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            backgroundColor: 'rgba(15, 20, 25, 0.98)',
-            backdropFilter: 'blur(10px)',
-            padding: '2rem',
-            borderTop: '1px solid rgba(245, 158, 11, 0.1)'
-          }}>
-            <nav style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem',
-              alignItems: 'center'
-            }}>
-              <a href="#home" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Home</a>
-              <a href="#products" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Products</a>
-              <a href="#about" style={navLinkStyle} onClick={() => setMenuOpen(false)}>About</a>
-              <a href="#contact" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Contact</a>
+          <div style={mobileMenuStyle}>
+            <nav style={mobileNavStyle}>
+              <a 
+                href="#home" 
+                style={navLinkStyle} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate?.('home');
+                  setMenuOpen(false);
+                }}
+                onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+                onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
+              >
+                Home
+              </a>
+              <a 
+                href="#products" 
+                style={navLinkStyle} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate?.('products');
+                  setMenuOpen(false);
+                }}
+                onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+                onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
+              >
+                Products
+              </a>
+              <a 
+                href="#about" 
+                style={navLinkStyle} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate?.('about');
+                  setMenuOpen(false);
+                }}
+                onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+                onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
+              >
+                About
+              </a>
+              <a 
+                href="#contact" 
+                style={navLinkStyle} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate?.('contact');
+                  setMenuOpen(false);
+                }}
+                onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+                onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
+              >
+                Contact
+              </a>
             </nav>
           </div>
         )}

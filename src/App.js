@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import ProductCard from './components/ProductCard';
 import AuthModal from './components/AuthModal';
+import CartModal from './components/CartModal';
 import Checkout from './components/Checkout';
 import { testFirebaseConnection } from './firebase';
 import { productService } from './services/productService';
 import { authService } from './services/authService';
+import { Shield, Award, Clock, Star, Mail } from 'lucide-react';
 import './App.css';
 
 function App() {
@@ -20,32 +22,29 @@ function App() {
   const [userLoading, setUserLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   
-  // Checkout state
+  // Cart and Checkout state
+  const [cartModalOpen, setCartModalOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  // Newsletter state
+  const [email, setEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState('');
 
   // Test Firebase connection and load products
   useEffect(() => {
-    console.log('Testing Firebase connection...');
+    console.log('Initializing CarPore...');
     
-    console.log('Environment variables check:', {
-      apiKey: process.env.REACT_APP_FIREBASE_API_KEY ? 'Set' : 'Missing',
-      projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID ? 'Set' : 'Missing',
-      authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN ? 'Set' : 'Missing',
-      razorpayKey: process.env.REACT_APP_RAZORPAY_KEY_ID ? 'Set' : 'Missing'
-    });
-
     try {
       const isConnected = testFirebaseConnection();
       if (isConnected) {
         setFirebaseStatus('connected');
-        console.log('✅ Firebase connection successful');
         loadProducts();
       } else {
         setFirebaseStatus('failed');
-        console.log('❌ Firebase connection failed');
+        console.log('Firebase connection failed');
       }
     } catch (error) {
-      console.error('❌ Firebase connection error:', error);
+      console.error('Firebase connection error:', error);
       setFirebaseStatus('error');
     }
   }, []);
@@ -53,7 +52,6 @@ function App() {
   // Listen for authentication state changes
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChange((user) => {
-      console.log('👤 Auth state changed:', user ? `Logged in as ${user.email}` : 'Logged out');
       setUser(user);
       setUserLoading(false);
     });
@@ -70,9 +68,8 @@ function App() {
       const fetchedProducts = await productService.getProducts();
       setProducts(fetchedProducts);
       
-      console.log('📦 Products loaded successfully:', fetchedProducts.length);
     } catch (error) {
-      console.error('❌ Failed to load products:', error);
+      console.error('Failed to load products:', error);
       setProductsError(error.message);
     } finally {
       setProductsLoading(false);
@@ -91,46 +88,155 @@ function App() {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
-    alert(`${product.name} added to cart!`);
+    
+    // Show notification
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed; top: 100px; right: 20px; z-index: 1000;
+      background: #10B981; color: white; padding: 1rem 1.5rem;
+      border-radius: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      font-weight: 600; animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = `${product.name} added to cart!`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.remove(), 3000);
   };
 
   const handleLoginClick = () => {
     if (user) {
-      // User is logged in, show logout option
       if (window.confirm(`Logout from ${user.email}?`)) {
         authService.logout();
       }
     } else {
-      // User is not logged in, show login modal
       setAuthModalOpen(true);
     }
   };
 
   const handleCartClick = () => {
-    if (cart.length === 0) {
-      alert('Your cart is empty! Add some products first.');
+    setCartModalOpen(true);
+  };
+
+  const handleUpdateQuantity = (productId, newQuantity) => {
+    if (newQuantity <= 0) {
+      handleRemoveItem(productId);
       return;
     }
     
+    setCart(prev => 
+      prev.map(item =>
+        item.id === productId 
+          ? { ...item, quantity: newQuantity }
+          : item
+      )
+    );
+  };
+
+  const handleRemoveItem = (productId) => {
+    setCart(prev => prev.filter(item => item.id !== productId));
+  };
+
+  const handleProceedToCheckout = () => {
     if (!user) {
+      setCartModalOpen(false);
       alert('Please login to proceed to checkout');
       setAuthModalOpen(true);
       return;
     }
     
-    console.log('🛒 Opening checkout with cart:', cart);
+    setCartModalOpen(false);
     setCheckoutOpen(true);
   };
 
   const handleAuthSuccess = (user) => {
-    console.log('🎉 Authentication successful:', user.email);
-    alert(`Welcome ${user.displayName || user.email}!`);
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed; top: 100px; right: 20px; z-index: 1000;
+      background: #FBBF24; color: #111827; padding: 1rem 1.5rem;
+      border-radius: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      font-weight: 600;
+    `;
+    notification.textContent = `Welcome ${user.displayName || user.email}!`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.remove(), 3000);
   };
 
   const handleCheckoutSuccess = (order) => {
-    console.log('🎉 Checkout successful:', order);
-    setCart([]); // Clear cart after successful order
-    alert(`Order placed successfully!\nOrder Number: ${order.orderNumber}`);
+    console.log('Order completed:', order);
+    setCart([]);
+    
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 1000; 
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(26, 26, 26, 0.95));
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 20px;
+      padding: 2.5rem; 
+      text-align: center;
+      max-width: 450px; width: 90%;
+      color: #ffffff;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    `;
+    notification.innerHTML = `
+      <div style="
+        width: 80px; height: 80px; 
+        background: linear-gradient(45deg, #D4AF37, #F4D03F);
+        border-radius: 50%; 
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 1.5rem; font-size: 2rem;
+      ">🎉</div>
+      <h3 style="color: #D4AF37; margin-bottom: 1rem; font-size: 1.5rem; font-weight: 600;">
+        Order Placed Successfully!
+      </h3>
+      <p style="margin-bottom: 1rem; color: rgba(255, 255, 255, 0.8); line-height: 1.6;">
+        Thank you for your purchase! Your order has been confirmed.
+      </p>
+      <div style="
+        background: rgba(212, 175, 55, 0.1); 
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem;
+      ">
+        <p style="margin-bottom: 0.5rem; font-weight: 600; color: #ffffff;">
+          Order Number: <span style="color: #D4AF37;">${order.orderNumber}</span>
+        </p>
+        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.7);">
+          You will receive a confirmation email shortly
+        </p>
+      </div>
+      <button onclick="this.parentElement.remove()" 
+              style="
+                background: linear-gradient(45deg, #D4AF37, #F4D03F);
+                color: #000000; border: none; 
+                padding: 0.75rem 2rem; border-radius: 50px; 
+                font-weight: 600; cursor: pointer; font-size: 1rem;
+                transition: all 0.3s ease;
+              "
+              onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(212, 175, 55, 0.4)';"
+              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+        Continue Shopping
+      </button>
+    `;
+    document.body.appendChild(notification);
+  };
+
+  const handleNewsletterSubmit = (e) => {
+    e.preventDefault();
+    if (email) {
+      setNewsletterStatus('Thank you for subscribing!');
+      setEmail('');
+      setTimeout(() => setNewsletterStatus(''), 3000);
+    }
+  };
+
+  const handleExploreClick = () => {
+    document.getElementById('why-choose')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToSection = (sectionId) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const getCartCount = () => {
@@ -141,147 +247,495 @@ function App() {
     return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   };
 
-  const getStatusColor = () => {
-    switch (firebaseStatus) {
-      case 'connected': return '#10B981';
-      case 'testing': return '#F59E0B';
-      case 'failed': 
-      case 'error': 
-      default: return '#EF4444';
+  // Sample data for sections
+  const features = [
+    {
+      icon: <Shield size={32} />,
+      title: "100% Natural Ingredients",
+      description: "Our air fresheners are crafted with only the finest natural essential oils and organic extracts for a pure and safe experience."
+    },
+    {
+      icon: <Award size={32} />,
+      title: "Premium Quality Guarantee",
+      description: "Every product undergoes rigorous quality testing to meet our luxury standards. We stand behind our promise with a 30-day satisfaction guarantee."
+    },
+    {
+      icon: <Clock size={32} />,
+      title: "Long-Lasting Performance",
+      description: "Advanced time-release technology ensures your favorite scents last up to 60 days, delivering consistent fragrance throughout."
     }
-  };
+  ];
 
-  const getStatusText = () => {
-    switch (firebaseStatus) {
-      case 'connected': return '✅ Connected';
-      case 'testing': return '🔄 Testing...';
-      case 'failed': return '❌ Failed';
-      case 'error': return '❌ Error';
-      default: return '❓ Unknown';
+  const testimonials = [
+    {
+      name: "Sarah Mitchell",
+      rating: 5,
+      text: "AuraCampfit has completely transformed how I approach home fragrance for my clients. The quality is unmatched and the scents are so sophisticated. My clients always ask about what makes their spaces smell like their favorite boutique!"
+    },
+    {
+      name: "Marcus Chen",
+      rating: 5,
+      text: "We've been using AuraCampfit products in our 5-star hotel for over two years. The consistency and longevity of their fragrances is exceptional. Guests frequently complement our hotel's unique scent."
+    },
+    {
+      name: "Emma Rodriguez",
+      rating: 5,
+      text: "I'm extremely particular about scents, and AuraCampfit is the only brand I trust. The Vanilla is not a cloyouly-sweet scent - it creates such a warm, welcoming atmosphere in our home. Worth every penny!"
     }
-  };
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div style={{
+      minHeight: '100vh',
+      background: `
+        radial-gradient(ellipse at center, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 30%, transparent 70%),
+        radial-gradient(ellipse at center, #1a1a1a 0%, #0d0d0d 70%, #000000 100%)
+      `,
+      color: '#ffffff'
+    }}>
       <Header 
         cartCount={getCartCount()}
         onCartClick={handleCartClick}
         onLoginClick={handleLoginClick}
         user={user}
         userLoading={userLoading}
+        onNavigate={scrollToSection}
       />
 
-      {/* Firebase Status Indicator */}
-      <div style={{
-        position: 'fixed',
-        top: '80px',
-        right: '20px',
-        background: getStatusColor(),
-        color: 'white',
-        padding: '0.5rem 1rem',
-        borderRadius: '0.5rem',
-        fontSize: '0.875rem',
-        zIndex: 50,
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+      {/* Hero Section */}
+      <section id="home" style={{
+        minHeight: '90vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        padding: '2rem 1rem',
+        position: 'relative',
+        background: `
+          radial-gradient(ellipse 800px 600px at center, rgba(212, 175, 55, 0.08) 0%, transparent 50%)
+        `
       }}>
-        Firebase: {getStatusText()}
-      </div>
-
-      {/* User Status Indicator */}
-      {!userLoading && (
-        <div style={{
-          position: 'fixed',
-          top: '120px',
-          right: '20px',
-          background: user ? '#10B981' : '#6B7280',
-          color: 'white',
-          padding: '0.5rem 1rem',
-          borderRadius: '0.5rem',
-          fontSize: '0.875rem',
-          zIndex: 50,
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
-          User: {user ? `✅ ${user.email}` : '❌ Not logged in'}
-        </div>
-      )}
-
-      {/* Payment Status Indicator */}
-      <div style={{
-        position: 'fixed',
-        top: '160px',
-        right: '20px',
-        background: process.env.REACT_APP_RAZORPAY_KEY_ID ? '#10B981' : '#EF4444',
-        color: 'white',
-        padding: '0.5rem 1rem',
-        borderRadius: '0.5rem',
-        fontSize: '0.875rem',
-        zIndex: 50,
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-      }}>
-        Razorpay: {process.env.REACT_APP_RAZORPAY_KEY_ID ? '✅ Ready' : '❌ Not configured'}
-      </div>
-
-      <main className="py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <h1 className="text-4xl font-bold text-white text-center mb-4">
-            Premium <span style={{color: '#FBBF24'}}>Air Fresheners</span>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <h1 style={{
+            fontSize: 'clamp(2.5rem, 8vw, 5rem)',
+            fontWeight: '300',
+            letterSpacing: '0.02em',
+            lineHeight: '1.1',
+            marginBottom: '2rem',
+            color: '#ffffff'
+          }}>
+            Premium<span style={{color: '#D4AF37'}}> Air Fresheners</span>
           </h1>
           
-          <p className="text-center text-gray-300 mb-12">
-            Transform your space with luxury camphor and wood-infused scents
+          <p style={{
+            fontSize: 'clamp(1rem, 2.5vw, 1.25rem)',
+            color: 'rgba(255, 255, 255, 0.8)',
+            lineHeight: '1.6',
+            marginBottom: '3rem',
+            maxWidth: '600px',
+            margin: '0 auto 3rem'
+          }}>
+            Transform your space with our luxury collection of<br />
+            camphor and wood-infused air fresheners
+          </p>
+          
+          <button 
+            onClick={handleExploreClick}
+            style={{
+              background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
+              color: '#000000',
+              border: 'none',
+              padding: '1rem 2.5rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              borderRadius: '50px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              textTransform: 'none',
+              letterSpacing: '0.5px',
+              boxShadow: '0 4px 20px rgba(212, 175, 55, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 30px rgba(212, 175, 55, 0.4)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 20px rgba(212, 175, 55, 0.3)';
+            }}
+          >
+            Explore Collection
+          </button>
+        </div>
+      </section>
+
+      {/* Why Choose CarPore Section */}
+      <section id="why-choose" style={{
+        padding: '6rem 0',
+        backgroundColor: 'transparent',
+        textAlign: 'center'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
+          <h2 style={{
+            fontSize: 'clamp(2rem, 5vw, 3rem)',
+            fontWeight: '600',
+            marginBottom: '1rem',
+            color: '#ffffff'
+          }}>
+            Why Choose <span style={{color: '#D4AF37'}}>Carpore</span>
+          </h2>
+          <p style={{
+            fontSize: '1.125rem',
+            color: 'rgba(255, 255, 255, 0.8)',
+            marginBottom: '4rem',
+            maxWidth: '600px',
+            margin: '0 auto 4rem'
+          }}>
+            Experience the difference that premium quality and exceptional service makes in luxury home fragrance.
           </p>
 
-          {/* Products Section */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '3rem',
+            marginTop: '3rem'
+          }}>
+            {features.map((feature, index) => (
+              <div key={index} style={{
+                padding: '2rem',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  backgroundColor: '#D4AF37',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 1.5rem',
+                  color: '#000000'
+                }}>
+                  {feature.icon}
+                </div>
+                <h3 style={{
+                  fontSize: '1.5rem',
+                  fontWeight: '600',
+                  marginBottom: '1rem',
+                  color: '#ffffff'
+                }}>
+                  {feature.title}
+                </h3>
+                <p style={{
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  lineHeight: '1.6'
+                }}>
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Products Section */}
+      <section id="featured-products" style={{
+        padding: '6rem 0',
+        backgroundColor: 'transparent',
+        textAlign: 'center'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
+          <h2 style={{
+            fontSize: 'clamp(2rem, 5vw, 3rem)',
+            fontWeight: '600',
+            marginBottom: '1rem',
+            color: '#ffffff'
+          }}>
+            Featured <span style={{color: '#D4AF37'}}>Products</span>
+          </h2>
+          <p style={{
+            fontSize: '1.125rem',
+            color: 'rgba(255, 255, 255, 0.8)',
+            marginBottom: '3rem',
+            maxWidth: '600px',
+            margin: '0 auto 3rem'
+          }}>
+            Discover our handpicked selection of premium air fresheners, each crafted with meticulous attention to detail.
+          </p>
+
+          <button 
+            onClick={() => scrollToSection('products')}
+            style={{
+              background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
+              color: '#000000',
+              border: 'none',
+              padding: '0.75rem 2rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              borderRadius: '50px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              marginBottom: '4rem'
+            }}
+          >
+            View All Products
+          </button>
+        </div>
+      </section>
+
+      {/* All Products Section */}
+      <section id="products" style={{ 
+        padding: '6rem 0',
+        backgroundColor: 'transparent',
+        color: '#ffffff'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
+          <h2 style={{
+            fontSize: 'clamp(2rem, 5vw, 3rem)',
+            fontWeight: '600',
+            marginBottom: '3rem',
+            textAlign: 'center',
+            color: '#ffffff'
+          }}>
+            All Products
+          </h2>
+
           {productsLoading ? (
-            <div style={{textAlign: 'center', color: 'white', padding: '2rem'}}>
+            <div style={{textAlign: 'center', padding: '4rem 2rem'}}>
               <div style={{
-                width: '2rem',
-                height: '2rem',
-                border: '4px solid #374151',
-                borderTop: '4px solid #FBBF24',
+                width: '3rem',
+                height: '3rem',
+                border: '4px solid #e5e5e5',
+                borderTop: '4px solid #D4AF37',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
-                margin: '0 auto 1rem'
+                margin: '0 auto 2rem'
               }}></div>
-              <p>Loading products from Firebase...</p>
-              <style>{`
-                @keyframes spin {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
-                }
-              `}</style>
+              <h3 style={{fontSize: '1.5rem', marginBottom: '1rem', color: '#D4AF37'}}>Loading Products...</h3>
+              <p style={{color: 'rgba(255,255,255,0.8)'}}>Please wait while we fetch our latest collection</p>
+              <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
             </div>
           ) : productsError ? (
-            <div style={{textAlign: 'center', color: '#EF4444', padding: '2rem'}}>
-              <p>❌ Error loading products: {productsError}</p>
-              <button 
-                onClick={loadProducts}
-                style={{
-                  marginTop: '1rem',
-                  backgroundColor: '#FBBF24',
-                  color: '#111827',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Try Again
-              </button>
+            <div style={{textAlign: 'center', padding: '4rem 2rem'}}>
+              <div style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#EF4444',
+                padding: '2rem',
+                borderRadius: '1rem',
+                maxWidth: '500px',
+                margin: '0 auto'
+              }}>
+                <h3 style={{marginBottom: '1rem'}}>Unable to Load Products</h3>
+                <p style={{marginBottom: '1.5rem'}}>{productsError}</p>
+                <button 
+                  onClick={loadProducts}
+                  style={{
+                    backgroundColor: '#D4AF37',
+                    color: '#000000',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '50px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  Retry Loading
+                </button>
+              </div>
             </div>
           ) : products.length === 0 ? (
-            <div style={{textAlign: 'center', color: '#9CA3AF', padding: '2rem'}}>
-              <p>📦 No products found in database</p>
+            <div style={{textAlign: 'center', color: 'rgba(255,255,255,0.7)', padding: '4rem 2rem'}}>
+              <h3 style={{fontSize: '1.5rem', marginBottom: '1rem', color: '#D4AF37'}}>No Products Available</h3>
+              <p>We're currently updating our inventory. Please check back soon!</p>
             </div>
           ) : (
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem'}}>
+            <div style={{
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+              gap: '2rem',
+              padding: '2rem 0'
+            }}>
               {products.map(product => (
-                <ProductCard 
+                <div
                   key={product.id}
-                  product={product}
-                  onAddToCart={handleAddToCart}
-                  onViewProduct={(p) => alert(`Viewing: ${p.name}`)}
-                />
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    backdropFilter: 'blur(20px)',
+                    borderRadius: '20px',
+                    padding: '1.5rem',
+                    border: '1px solid rgba(212, 175, 55, 0.2)',
+                    transition: 'all 0.3s ease',
+                    cursor: 'pointer',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-10px)';
+                    e.currentTarget.style.boxShadow = '0 20px 40px rgba(212, 175, 55, 0.2)';
+                    e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.4)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+                    e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.2)';
+                  }}
+                >
+                  {/* Floating glow effect */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-50%',
+                    left: '-50%',
+                    width: '200%',
+                    height: '200%',
+                    background: 'radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%)',
+                    opacity: 0.5,
+                    pointerEvents: 'none'
+                  }}></div>
+
+                  {/* Product Image */}
+                  <div style={{
+                    position: 'relative',
+                    height: '200px',
+                    borderRadius: '15px',
+                    overflow: 'hidden',
+                    marginBottom: '1.5rem',
+                    background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05))'
+                  }}>
+                    <img 
+                      src={product.images?.[0]?.src || '/images/placeholder.jpg'}
+                      alt={product.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        borderRadius: '15px'
+                      }}
+                    />
+                    {product.category && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '1rem',
+                        left: '1rem',
+                        backgroundColor: 'rgba(212, 175, 55, 0.9)',
+                        color: '#000000',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '20px',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        backdropFilter: 'blur(10px)'
+                      }}>
+                        {product.category}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Product Info */}
+                  <div style={{ position: 'relative', zIndex: 2 }}>
+                    <h3 style={{
+                      fontSize: '1.25rem',
+                      fontWeight: '600',
+                      marginBottom: '0.5rem',
+                      color: '#ffffff'
+                    }}>
+                      {product.name}
+                    </h3>
+                    
+                    {product.scent && (
+                      <p style={{
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        fontSize: '0.9rem',
+                        marginBottom: '0.75rem'
+                      }}>
+                        {product.scent} Scent
+                      </p>
+                    )}
+                    
+                    {product.rating && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginBottom: '1rem'
+                      }}>
+                        <div style={{ display: 'flex' }}>
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} style={{
+                              color: i < Math.floor(product.rating) ? '#D4AF37' : 'rgba(255,255,255,0.3)',
+                              fontSize: '1rem'
+                            }}>
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        {product.reviewCount && (
+                          <span style={{
+                            fontSize: '0.85rem',
+                            color: 'rgba(255, 255, 255, 0.6)'
+                          }}>
+                            ({product.reviewCount})
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {product.description && (
+                      <p style={{
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        fontSize: '0.9rem',
+                        lineHeight: '1.4',
+                        marginBottom: '1.5rem'
+                      }}>
+                        {product.description}
+                      </p>
+                    )}
+                    
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span style={{
+                        fontSize: '1.5rem',
+                        fontWeight: 'bold',
+                        color: '#D4AF37'
+                      }}>
+                        ₹{product.price}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToCart(product);
+                        }}
+                        style={{
+                          background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
+                          color: '#000000',
+                          padding: '0.75rem 1.5rem',
+                          borderRadius: '25px',
+                          border: 'none',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          transition: 'all 0.3s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}
+                        onMouseOver={(e) => {
+                          e.target.style.transform = 'scale(1.05)';
+                          e.target.style.boxShadow = '0 5px 15px rgba(212, 175, 55, 0.4)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.target.style.transform = 'scale(1)';
+                          e.target.style.boxShadow = 'none';
+                        }}
+                      >
+                        🛒 Add to Cart
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -289,52 +743,521 @@ function App() {
           {/* Cart Summary */}
           {cart.length > 0 && (
             <div style={{
-              marginTop: '3rem',
-              padding: '1rem',
-              backgroundColor: '#1F2937',
-              borderRadius: '0.5rem',
-              color: 'white',
-              textAlign: 'center'
+              marginTop: '4rem',
+              padding: '2rem',
+              backgroundColor: 'rgba(212, 175, 55, 0.08)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              borderRadius: '20px',
+              textAlign: 'center',
+              maxWidth: '500px',
+              margin: '4rem auto 0'
             }}>
-              <h3 style={{color: '#FBBF24', marginBottom: '0.5rem'}}>Cart Summary</h3>
-              <p>{getCartCount()} items • Total: ₹{getCartTotal().toFixed(2)}</p>
+              <h3 style={{color: '#D4AF37', marginBottom: '1rem', fontSize: '1.5rem'}}>
+                🛒 Cart Summary
+              </h3>
+              <div style={{marginBottom: '1.5rem'}}>
+                <p style={{fontSize: '1.125rem', marginBottom: '0.5rem', color: '#fff'}}>
+                  {getCartCount()} {getCartCount() === 1 ? 'item' : 'items'}
+                </p>
+                <p style={{fontSize: '2rem', fontWeight: 'bold', color: '#D4AF37'}}>
+                  ₹{getCartTotal().toFixed(2)}
+                </p>
+              </div>
               <button
-                onClick={handleCartClick}
+                onClick={handleProceedToCheckout}
                 style={{
-                  marginTop: '1rem',
-                  backgroundColor: '#FBBF24',
-                  color: '#111827',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '0.5rem',
+                  background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
+                  color: '#000000',
+                  padding: '1rem 2rem',
+                  borderRadius: '50px',
                   border: 'none',
                   cursor: 'pointer',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  fontSize: '1.125rem',
+                  width: '100%',
+                  transition: 'transform 0.2s ease'
                 }}
+                onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+                onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
               >
-                Proceed to Checkout
+                Proceed to Checkout →
               </button>
             </div>
           )}
+        </div>
+      </section>
 
-          {/* Debug Info */}
-          <div style={{
-            marginTop: '3rem',
-            padding: '1rem',
-            backgroundColor: '#1F2937',
-            borderRadius: '0.5rem',
-            color: 'white',
-            fontSize: '0.875rem'
+      {/* About CarPore Section */}
+      <section id="about" style={{
+        padding: '6rem 0',
+        backgroundColor: 'transparent'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
+          <h2 style={{
+            fontSize: 'clamp(2rem, 5vw, 3rem)',
+            fontWeight: '600',
+            marginBottom: '3rem',
+            textAlign: 'center',
+            color: '#ffffff'
           }}>
-            <h3 style={{color: '#FBBF24', marginBottom: '0.5rem'}}>Debug Info:</h3>
-            <p>Firebase Status: {firebaseStatus}</p>
-            <p>Products Loaded: {products.length}</p>
-            <p>User Status: {user ? `Logged in as ${user.email}` : 'Not logged in'}</p>
-            <p>Cart Items: {getCartCount()}</p>
-            <p>Cart Total: ₹{getCartTotal().toFixed(2)}</p>
-            <p>Razorpay Key: {process.env.REACT_APP_RAZORPAY_KEY_ID ? 'Configured' : 'Missing'}</p>
+            About <span style={{color: '#D4AF37'}}>CarPore</span>
+          </h2>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '4rem',
+            alignItems: 'start'
+          }}>
+            <div>
+              <h3 style={{
+                color: '#D4AF37',
+                fontSize: '1.5rem',
+                marginBottom: '1rem'
+              }}>
+                Our Story
+              </h3>
+              <p style={{
+                color: 'rgba(255, 255, 255, 0.8)',
+                lineHeight: '1.6',
+                marginBottom: '2rem'
+              }}>
+                Founded by fragrance enthusiasts, CarPore began with a simple vision to bring luxury home fragrance to beautiful as they are effective. We believe that scent is a powerful part of your environment, and our products are designed to enhance your everyday living with a lasting impression.
+              </p>
+
+              <h4 style={{ color: '#ffffff', marginBottom: '1rem' }}>Our Values</h4>
+              <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8' }}>
+                <li>• 100% natural, non-toxic ingredients</li>
+                <li>• Premium quality and craftsmanship</li>
+                <li>• Eco-friendly and sustainable practices</li>
+                <li>• Customer satisfaction guaranteed</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 style={{
+                color: '#D4AF37',
+                fontSize: '1.5rem',
+                marginBottom: '1rem'
+              }}>
+                Why Choose Us?
+              </h3>
+              <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8', marginBottom: '2rem' }}>
+                <li>• Unique, sophisticated scents</li>
+                <li>• Long-lasting performance up to 60 days</li>
+                <li>• Premium packaging and presentation</li>
+                <li>• Elegant, modern designs</li>
+                <li>• Trusted by thousands of happy customers</li>
+              </ul>
+
+              <h4 style={{ color: '#ffffff', marginBottom: '1rem' }}>Contact</h4>
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                Have questions or want to collaborate?<br />
+                Email us at <span style={{ color: '#D4AF37' }}>hello@carpore.com</span>
+              </p>
+            </div>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* Testimonials Section */}
+      <section style={{
+        padding: '6rem 0',
+        backgroundColor: 'transparent'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
+          <h2 style={{
+            fontSize: 'clamp(2rem, 5vw, 3rem)',
+            fontWeight: '600',
+            marginBottom: '1rem',
+            textAlign: 'center',
+            color: '#ffffff'
+          }}>
+            What Our <span style={{color: '#D4AF37'}}>Customers Say</span>
+          </h2>
+          <p style={{
+            fontSize: '1.125rem',
+            color: 'rgba(255, 255, 255, 0.8)',
+            marginBottom: '4rem',
+            textAlign: 'center'
+          }}>
+            Join thousands of satisfied customers who have elevated their spaces with our premium fragrances.
+          </p>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+            gap: '2rem',
+            marginBottom: '3rem'
+          }}>
+            {testimonials.map((testimonial, index) => (
+              <div key={index} style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                padding: '2rem',
+                borderRadius: '1rem',
+                border: '1px solid rgba(212, 175, 55, 0.1)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  marginBottom: '1rem'
+                }}>
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} size={16} fill="#D4AF37" color="#D4AF37" />
+                  ))}
+                </div>
+                <p style={{
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontStyle: 'italic',
+                  lineHeight: '1.6',
+                  marginBottom: '1.5rem'
+                }}>
+                  "{testimonial.text}"
+                </p>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#D4AF37',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#000000',
+                    fontWeight: '600'
+                  }}>
+                    {testimonial.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <span style={{ color: '#ffffff', fontWeight: '600' }}>
+                    {testimonial.name}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            textAlign: 'center',
+            padding: '2rem',
+            backgroundColor: 'rgba(212, 175, 55, 0.1)',
+            borderRadius: '1rem',
+            border: '1px solid rgba(212, 175, 55, 0.2)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginBottom: '0.5rem'
+            }}>
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} size={20} fill="#D4AF37" color="#D4AF37" />
+              ))}
+            </div>
+            <span style={{
+              color: '#ffffff',
+              fontWeight: '600',
+              fontSize: '1.125rem'
+            }}>
+              4.9/5 from 2,500+ reviews
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter Section */}
+      <section id="contact" style={{
+        padding: '4rem 0',
+        background: 'linear-gradient(135deg, #D4AF37, #F4D03F)',
+        color: '#000000',
+        textAlign: 'center'
+      }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 2rem' }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '50%',
+            backgroundColor: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 2rem'
+          }}>
+            <Mail color="#D4AF37" size={28} />
+          </div>
+
+          <h2 style={{
+            fontSize: 'clamp(2rem, 5vw, 3rem)',
+            fontWeight: '600',
+            marginBottom: '1rem'
+          }}>
+            Stay Updated with Exclusive Offers
+          </h2>
+          
+          <p style={{
+            fontSize: '1.125rem',
+            marginBottom: '2.5rem',
+            opacity: 0.8,
+            maxWidth: '500px',
+            margin: '0 auto 2.5rem'
+          }}>
+            Be the first to know about new fragrance collections, special deals, and exclusive member perks.
+          </p>
+
+          <form onSubmit={handleNewsletterSubmit} style={{
+            display: 'flex',
+            maxWidth: '500px',
+            margin: '0 auto',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            <input
+              type="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{
+                flex: '1',
+                minWidth: '250px',
+                padding: '1rem 1.5rem',
+                border: 'none',
+                borderRadius: '50px',
+                fontSize: '1rem',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                color: '#000000'
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                background: '#000000',
+                color: '#D4AF37',
+                border: 'none',
+                padding: '1rem 2rem',
+                borderRadius: '50px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = '#1a1a1a';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = '#000000';
+              }}
+            >
+              Subscribe →
+            </button>
+          </form>
+
+          {newsletterStatus && (
+            <p style={{
+              marginTop: '1rem',
+              color: '#000000',
+              fontWeight: '600'
+            }}>
+              {newsletterStatus}
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{
+        backgroundColor: '#0d1117',
+        color: '#ffffff',
+        padding: '3rem 0 1rem'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '3rem',
+            marginBottom: '2rem'
+          }}>
+            {/* Brand Section */}
+            <div>
+              <h3 style={{
+                color: '#D4AF37',
+                fontSize: '1.8rem',
+                fontWeight: '700',
+                marginBottom: '1rem',
+                letterSpacing: '0.1em'
+              }}>
+                CARPORE
+              </h3>
+              <p style={{
+                color: 'rgba(255, 255, 255, 0.8)',
+                lineHeight: '1.6',
+                marginBottom: '1.5rem'
+              }}>
+                Transform your spaces with premium luxury air fresheners crafted from the finest natural ingredients. Our mission is elevating everyday living with sophisticated scents.
+              </p>
+              <div style={{
+                display: 'flex',
+                gap: '1rem'
+              }}>
+                <span style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = '#D4AF37';
+                  e.target.style.color = '#000000';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+                  e.target.style.color = '#ffffff';
+                }}>
+                  f
+                </span>
+                <span style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = '#D4AF37';
+                  e.target.style.color = '#000000';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+                  e.target.style.color = '#ffffff';
+                }}>
+                  @
+                </span>
+                <span style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = '#D4AF37';
+                  e.target.style.color = '#000000';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+                  e.target.style.color = '#ffffff';
+                }}>
+                  in
+                </span>
+              </div>
+            </div>
+
+            {/* Contact Section */}
+            <div>
+              <h4 style={{
+                color: '#ffffff',
+                fontSize: '1.2rem',
+                marginBottom: '1rem'
+              }}>
+                Contact Us
+              </h4>
+              <div style={{
+                color: 'rgba(255, 255, 255, 0.8)',
+                lineHeight: '1.8'
+              }}>
+                <p style={{ marginBottom: '0.5rem' }}>
+                  📍 123 Luxury Lane, Fragrance City, FC 12345
+                </p>
+                <p style={{ marginBottom: '0.5rem' }}>
+                  📞 +91 98565 67890
+                </p>
+                <p style={{ marginBottom: '0.5rem' }}>
+                  ✉️ hello@carpore.com
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Bottom */}
+          <div style={{
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            paddingTop: '2rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <p style={{
+              color: 'rgba(255, 255, 255, 0.6)',
+              fontSize: '0.875rem'
+            }}>
+              © 2024 CarPore. All rights reserved.
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: '2rem',
+              flexWrap: 'wrap'
+            }}>
+              <span style={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                transition: 'color 0.3s ease'
+              }}
+              onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+              onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.6)'}>
+                Privacy Policy
+              </span>
+              <span style={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                transition: 'color 0.3s ease'
+              }}
+              onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+              onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.6)'}>
+                Terms of Service
+              </span>
+              <span style={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                transition: 'color 0.3s ease'
+              }}
+              onMouseOver={(e) => e.target.style.color = '#D4AF37'}
+              onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.6)'}>
+                Cookie Policy
+              </span>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Cart Modal */}
+      <CartModal 
+        isOpen={cartModalOpen}
+        onClose={() => setCartModalOpen(false)}
+        cart={cart}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveItem}
+        onProceedToCheckout={handleProceedToCheckout}
+      />
 
       {/* Authentication Modal */}
       <AuthModal 
@@ -352,6 +1275,27 @@ function App() {
           user={user}
         />
       )}
+
+      {/* Scroll animations */}
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        html {
+          scroll-behavior: smooth;
+        }
+        
+        section {
+          scroll-margin-top: 100px;
+        }
+      `}</style>
     </div>
   );
 }
