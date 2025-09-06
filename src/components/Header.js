@@ -222,20 +222,50 @@ const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading, onNav
 
             {/* Cart Button */}
             <button 
-              style={cartButtonStyle} 
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.9)',
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '50%',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '44px',
+                minHeight: '44px'
+              }}
               onClick={onCartClick}
               onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.2)';
-                e.target.style.borderColor = 'rgba(212, 175, 55, 0.5)';
+                e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+                e.target.style.color = '#D4AF37';
               }}
               onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
-                e.target.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = 'rgba(255, 255, 255, 0.9)';
               }}
             >
               <ShoppingCart size={20} />
               {cartCount > 0 && (
-                <span style={badgeStyle}>
+                <span style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  backgroundColor: '#D4AF37',
+                  color: '#000000',
+                  fontSize: '0.75rem',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '600',
+                  border: '2px solid rgba(0, 0, 0, 0.8)',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                }}>
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}

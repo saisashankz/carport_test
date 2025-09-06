@@ -1,0 +1,126 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600;700;800;900&display=swap');
+
+.hero-section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f5e7b2;
+  overflow: hidden;
+  background-color: #070607;
+  /* soft warm glow off-center + deep dark edges */
+  /* large warm glow slightly left and above center + subtle concentric rings and dark right vignette */
+  background-image:
+    radial-gradient(ellipse 1200px 900px at 28% 18%, rgba(212,175,55,0.26) 0%, rgba(212,175,55,0.12) 26%, rgba(212,175,55,0.04) 40%, rgba(0,0,0,0) 58%),
+    radial-gradient(circle at 32% 22%, rgba(212,175,55,0.06) 0%, rgba(212,175,55,0.02) 18%, rgba(0,0,0,0) 32%),
+    radial-gradient(ellipse 1200px 900px at 90% 100%, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.78) 72%);
+}
+
+.hero-section::before {
+  /* heavy outer vignette */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.65) 100%);
+  pointer-events: none;
+}
+
+.hero-overlay {
+  position: absolute;
+  width: 1400px;
+  height: 1400px;
+  left: -10%;
+  top: -18%;
+  background: radial-gradient(circle, rgba(212,175,55,0.30) 0%, rgba(212,175,55,0.14) 18%, rgba(212,175,55,0.06) 34%, rgba(0,0,0,0) 56%);
+  filter: blur(140px);
+  transform: rotate(-6deg);
+  opacity: 0.98;
+  pointer-events: none;
+}
+
+.hero-content {
+  text-align: center;
+  z-index: 5;
+  padding: 0 1.5rem;
+  max-width: 1100px;
+}
+
+
+.hero-title {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  font-size: clamp(3.6rem, 10vw, 7.2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.6rem;
+  color: #fff;
+  line-height: 0.9;
+  text-wrap: balance;
+}
+
+.hero-title-inner {
+  display: inline-block; /* keep the two spans visually attached */
+}
+
+
+.hero-title-premium {
+  background: linear-gradient(90deg, #f6e7a6 0%, #ffd76a 45%, #e9c86a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 900;
+  margin-right: -8px; /* tighten the visible gap to mimic reference */
+  text-shadow: 0 10px 60px rgba(212,175,55,0.14), 0 4px 18px rgba(0,0,0,0.45);
+}
+
+
+.hero-title-air {
+  color: rgba(255,245,210,0.95);
+  font-weight: 700;
+  text-shadow: 0 6px 48px rgba(212,175,55,0.18), 0 2px 12px rgba(0,0,0,0.45);
+  mix-blend-mode: screen;
+}
+
+.hero-content::before {
+  /* subtle concentric ring behind the headline for depth */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 860px;
+  height: 860px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(212,175,55,0.06) 0%, rgba(212,175,55,0.03) 18%, rgba(212,175,55,0.01) 36%, transparent 56%);
+  filter: blur(44px);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.hero-subtitle {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  font-size: clamp(1rem, 2.4vw, 1.25rem);
+  color: rgba(255,255,255,0.85);
+  margin: 1rem auto 2.2rem;
+  max-width: 720px;
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+.hero-btn {
+  background: linear-gradient(90deg, #D4AF37 0%, #F4D03F 100%);
+  color: #0f0f0f;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  padding: 0.95rem 2.4rem;
+  font-size: 1.05rem;
+  cursor: pointer;
+  box-shadow: 0 10px 40px rgba(212,175,55,0.18), inset 0 -1px 0 rgba(0,0,0,0.05);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.hero-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 60px rgba(212,175,55,0.24);
+}

@@ -1,0 +1,127 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600;700;800;900&display=swap');
+
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 2rem;
+  background-color: #070607;
+}
+
+/* soft animated warm spot behind the hero */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(212,175,55,0.15) 0%, transparent 50%);
+  animation: float 6s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(2deg); }
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  z-index: 3;
+}
+
+.heroContent {
+  text-align: center;
+  z-index: 4;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem 1rem;
+}
+
+.title {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  font-size: clamp(2.4rem, 6.5vw, 5rem);
+  line-height: 1;
+  max-width: 920px;
+  text-align: center;
+  color: #f3d46c; /* fallback */
+  background: linear-gradient(90deg, #ffffff 0%, #f8e7a0 45%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 6px 36px rgba(212,175,55,0.12), 0 2px 8px rgba(0,0,0,0.45);
+  z-index: 6;
+}
+
+.subtitle {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  color: #cccccc;
+  margin: 0 auto 1.5rem auto;
+  max-width: 720px;
+  font-weight: 300;
+  line-height: 1.6;
+  font-size: clamp(1rem, 2.4vw, 1.25rem);
+  z-index: 6;
+}
+
+.ctaButton {
+  display: inline-block;
+  padding: 12px 24px;
+  background: linear-gradient(45deg, #d4af37, #f4d03f);
+  color: #000000;
+  text-decoration: none;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+  position: relative;
+  overflow: hidden;
+  z-index: 6;
+}
+
+.ctaButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(212, 175, 55, 0.5);
+}
+
+.ctaButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: left 0.5s;
+}
+
+.ctaButton:hover::before {
+  left: 100%;
+}
+
+@media (min-width: 375px) {
+  .title { font-size: clamp(2.5rem, 6.8vw, 5.8rem); }
+}
+
+@media (min-width: 640px) {
+  .title { font-size: clamp(3rem, 7.5vw, 6.4rem); }
+  .subtitle { font-size: 1.25rem; }
+  .ctaButton { font-size: 1.1rem; padding: 14px 32px; }
+}
+
+@media (min-width: 768px) {
+  .title { font-size: clamp(3.6rem, 8.5vw, 7.2rem); }
+  .subtitle { font-size: 1.5rem; }
+  .ctaButton { font-size: 1.15rem; padding: 16px 40px; }
+}

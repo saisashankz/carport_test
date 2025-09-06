@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
+import HeroSection from './components/HeroSection';
 import ProductCard from './components/ProductCard';
 import AuthModal from './components/AuthModal';
 import CartModal from './components/CartModal';
@@ -302,72 +303,8 @@ function App() {
         onNavigate={scrollToSection}
       />
 
-      {/* Hero Section */}
-      <section id="home" style={{
-        minHeight: '90vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        padding: '2rem 1rem',
-        position: 'relative',
-        background: `
-          radial-gradient(ellipse 800px 600px at center, rgba(212, 175, 55, 0.08) 0%, transparent 50%)
-        `
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h1 style={{
-            fontSize: 'clamp(2.5rem, 8vw, 5rem)',
-            fontWeight: '300',
-            letterSpacing: '0.02em',
-            lineHeight: '1.1',
-            marginBottom: '2rem',
-            color: '#ffffff'
-          }}>
-            Premium<span style={{color: '#D4AF37'}}> Air Fresheners</span>
-          </h1>
-          
-          <p style={{
-            fontSize: 'clamp(1rem, 2.5vw, 1.25rem)',
-            color: 'rgba(255, 255, 255, 0.8)',
-            lineHeight: '1.6',
-            marginBottom: '3rem',
-            maxWidth: '600px',
-            margin: '0 auto 3rem'
-          }}>
-            Transform your space with our luxury collection of<br />
-            camphor and wood-infused air fresheners
-          </p>
-          
-          <button 
-            onClick={handleExploreClick}
-            style={{
-              background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
-              color: '#000000',
-              border: 'none',
-              padding: '1rem 2.5rem',
-              fontSize: '1rem',
-              fontWeight: '600',
-              borderRadius: '50px',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              textTransform: 'none',
-              letterSpacing: '0.5px',
-              boxShadow: '0 4px 20px rgba(212, 175, 55, 0.3)'
-            }}
-            onMouseOver={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 8px 30px rgba(212, 175, 55, 0.4)';
-            }}
-            onMouseOut={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 20px rgba(212, 175, 55, 0.3)';
-            }}
-          >
-            Explore Collection
-          </button>
-        </div>
-      </section>
+  {/* Hero Section */}
+  <HeroSection />
 
       {/* Why Choose CarPore Section */}
       <section id="why-choose" style={{
