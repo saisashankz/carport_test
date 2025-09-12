@@ -9,6 +9,7 @@ import {
 import { authService } from '../services/authService';
 import { orderService } from '../services/orderService';
 import { userService } from '../services/userService';
+import AddressModal from './AddressModal'; // Import AddressModal
 
 const UserDashboard = ({ isOpen, onClose, user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -20,6 +21,10 @@ const UserDashboard = ({ isOpen, onClose, user, onLogout }) => {
   const [editingProfile, setEditingProfile] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [notifications, setNotifications] = useState([]);
+  
+  // Address Modal states
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -104,6 +109,35 @@ const UserDashboard = ({ isOpen, onClose, user, onLogout }) => {
       onLogout();
       onClose();
     }
+  };
+
+  // Address Modal Handlers
+  const handleAddNewAddress = () => {
+    setEditingAddress(null);
+    setAddressModalOpen(true);
+  };
+
+  const handleEditAddress = (address) => {
+    setEditingAddress(address);
+    setAddressModalOpen(true);
+  };
+
+  const handleDeleteAddress = async (addressId) => {
+    if (window.confirm('Are you sure you want to delete this address?')) {
+      const success = await userService.deleteUserAddress(addressId);
+      if (success) {
+        showNotification('Address deleted successfully!', 'success');
+        loadAddresses(); // Reload addresses
+      } else {
+        showNotification('Failed to delete address', 'error');
+      }
+    }
+  };
+
+  const handleAddressModalSuccess = () => {
+    setAddressModalOpen(false);
+    setEditingAddress(null);
+    loadAddresses(); // Reload addresses after successful save
   };
 
   const showNotification = (message, type) => {
@@ -556,7 +590,10 @@ const UserDashboard = ({ isOpen, onClose, user, onLogout }) => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '1.8rem', fontWeight: '600', color: '#ffffff' }}>Saved Addresses</h2>
-        <button style={buttonStyle}>
+        <button 
+          style={buttonStyle}
+          onClick={handleAddNewAddress}
+        >
           <MapPin size={16} />
           Add New Address
         </button>
@@ -575,6 +612,13 @@ const UserDashboard = ({ isOpen, onClose, user, onLogout }) => {
           <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
             Add your addresses for faster checkout!
           </p>
+          <button 
+            style={{...buttonStyle, marginTop: '1.5rem'}}
+            onClick={handleAddNewAddress}
+          >
+            <MapPin size={16} />
+            Add Your First Address
+          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -586,33 +630,83 @@ const UserDashboard = ({ isOpen, onClose, user, onLogout }) => {
               padding: '1.5rem'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h4 style={{ color: '#D4AF37', marginBottom: '0.5rem' }}>{address.label}</h4>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <h4 style={{ color: '#D4AF37', fontSize: '1.1rem', fontWeight: '600' }}>
+                      {address.label}
+                    </h4>
+                    {address.isDefault && (
+                      <span style={{
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        color: '#10B981',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '12px',
+                        fontSize: '0.7rem',
+                        fontWeight: '600',
+                        border: '1px solid rgba(16, 185, 129, 0.3)'
+                      }}>
+                        DEFAULT
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: '500', marginBottom: '0.25rem' }}>
+                    {address.firstName} {address.lastName}
+                  </p>
+                  {address.phone && (
+                    <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                      📞 {address.phone}
+                    </p>
+                  )}
                   <p style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.5' }}>
-                    {address.street}<br />
-                    {address.city}, {address.state} {address.pincode}<br />
+                    {address.street}
+                    {address.apartment && <><br/>{address.apartment}</>}
+                    <br />
+                    {address.city}, {address.state} {address.pincode}
+                    <br />
                     {address.country}
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: 'none',
-                    color: '#ffffff',
-                    padding: '0.5rem',
-                    borderRadius: '8px',
-                    cursor: 'pointer'
-                  }}>
+                <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
+                  <button 
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      border: 'none',
+                      color: '#ffffff',
+                      padding: '0.5rem',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onClick={() => handleEditAddress(address)}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.2)';
+                      e.target.style.color = '#D4AF37';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                      e.target.style.color = '#ffffff';
+                    }}
+                  >
                     <Edit2 size={16} />
                   </button>
-                  <button style={{
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    border: 'none',
-                    color: '#EF4444',
-                    padding: '0.5rem',
-                    borderRadius: '8px',
-                    cursor: 'pointer'
-                  }}>
+                  <button 
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      border: 'none',
+                      color: '#EF4444',
+                      padding: '0.5rem',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onClick={() => handleDeleteAddress(address.id)}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.3)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                    }}
+                  >
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -679,133 +773,147 @@ const UserDashboard = ({ isOpen, onClose, user, onLogout }) => {
   );
 
   return (
-    <div style={modalStyle} onClick={onClose}>
-      <div style={contentStyle} onClick={(e) => e.stopPropagation()}>
-        {/* Sidebar */}
-        <div style={sidebarStyle}>
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.8rem',
-              fontWeight: '600',
-              color: '#000000',
-              margin: '0 auto 1rem'
-            }}>
-              {userProfile?.firstName?.[0] || user?.email?.[0] || 'U'}
+    <>
+      <div style={modalStyle} onClick={onClose}>
+        <div style={contentStyle} onClick={(e) => e.stopPropagation()}>
+          {/* Sidebar */}
+          <div style={sidebarStyle}>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.8rem',
+                fontWeight: '600',
+                color: '#000000',
+                margin: '0 auto 1rem'
+              }}>
+                {userProfile?.firstName?.[0] || user?.email?.[0] || 'U'}
+              </div>
+              <h3 style={{ color: '#ffffff', marginBottom: '0.25rem' }}>
+                {userProfile?.firstName && userProfile?.lastName 
+                  ? `${userProfile.firstName} ${userProfile.lastName}`
+                  : user?.displayName || 'User'
+                }
+              </h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem' }}>
+                {user?.email}
+              </p>
             </div>
-            <h3 style={{ color: '#ffffff', marginBottom: '0.25rem' }}>
-              {userProfile?.firstName && userProfile?.lastName 
-                ? `${userProfile.firstName} ${userProfile.lastName}`
-                : user?.displayName || 'User'
-              }
-            </h3>
-            <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem' }}>
-              {user?.email}
-            </p>
+
+            <nav style={{ marginBottom: '2rem' }}>
+              <button 
+                style={tabButtonStyle(activeTab === 'profile')}
+                onClick={() => setActiveTab('profile')}
+              >
+                <User size={20} />
+                Profile
+              </button>
+              <button 
+                style={tabButtonStyle(activeTab === 'orders')}
+                onClick={() => setActiveTab('orders')}
+              >
+                <Package size={20} />
+                Orders
+              </button>
+              <button 
+                style={tabButtonStyle(activeTab === 'wishlist')}
+                onClick={() => setActiveTab('wishlist')}
+              >
+                <Heart size={20} />
+                Wishlist
+              </button>
+              <button 
+                style={tabButtonStyle(activeTab === 'addresses')}
+                onClick={() => setActiveTab('addresses')}
+              >
+                <MapPin size={20} />
+                Addresses
+              </button>
+              <button 
+                style={tabButtonStyle(activeTab === 'notifications')}
+                onClick={() => setActiveTab('notifications')}
+              >
+                <Bell size={20} />
+                Notifications
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span style={{
+                    backgroundColor: '#EF4444',
+                    color: '#ffffff',
+                    fontSize: '0.7rem',
+                    padding: '0.15rem 0.4rem',
+                    borderRadius: '10px',
+                    marginLeft: 'auto'
+                  }}>
+                    {notifications.filter(n => !n.read).length}
+                  </span>
+                )}
+              </button>
+            </nav>
+
+            <button 
+              onClick={handleLogout}
+              style={{
+                ...tabButtonStyle(false),
+                color: '#EF4444',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                marginTop: 'auto'
+              }}
+            >
+              <LogOut size={20} />
+              Logout
+            </button>
+
+            <button 
+              onClick={onClose}
+              style={{
+                ...tabButtonStyle(false),
+                marginTop: '0.5rem'
+              }}
+            >
+              <X size={20} />
+              Close
+            </button>
           </div>
 
-          <nav style={{ marginBottom: '2rem' }}>
-            <button 
-              style={tabButtonStyle(activeTab === 'profile')}
-              onClick={() => setActiveTab('profile')}
-            >
-              <User size={20} />
-              Profile
-            </button>
-            <button 
-              style={tabButtonStyle(activeTab === 'orders')}
-              onClick={() => setActiveTab('orders')}
-            >
-              <Package size={20} />
-              Orders
-            </button>
-            <button 
-              style={tabButtonStyle(activeTab === 'wishlist')}
-              onClick={() => setActiveTab('wishlist')}
-            >
-              <Heart size={20} />
-              Wishlist
-            </button>
-            <button 
-              style={tabButtonStyle(activeTab === 'addresses')}
-              onClick={() => setActiveTab('addresses')}
-            >
-              <MapPin size={20} />
-              Addresses
-            </button>
-            <button 
-              style={tabButtonStyle(activeTab === 'notifications')}
-              onClick={() => setActiveTab('notifications')}
-            >
-              <Bell size={20} />
-              Notifications
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span style={{
-                  backgroundColor: '#EF4444',
-                  color: '#ffffff',
-                  fontSize: '0.7rem',
-                  padding: '0.15rem 0.4rem',
-                  borderRadius: '10px',
-                  marginLeft: 'auto'
-                }}>
-                  {notifications.filter(n => !n.read).length}
-                </span>
-              )}
-            </button>
-          </nav>
-
-          <button 
-            onClick={handleLogout}
-            style={{
-              ...tabButtonStyle(false),
-              color: '#EF4444',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              marginTop: 'auto'
-            }}
-          >
-            <LogOut size={20} />
-            Logout
-          </button>
-
-          <button 
-            onClick={onClose}
-            style={{
-              ...tabButtonStyle(false),
-              marginTop: '0.5rem'
-            }}
-          >
-            <X size={20} />
-            Close
-          </button>
+          {/* Main Content */}
+          <div style={mainContentStyle}>
+            {activeTab === 'profile' && renderProfileTab()}
+            {activeTab === 'orders' && renderOrdersTab()}
+            {activeTab === 'wishlist' && renderWishlistTab()}
+            {activeTab === 'addresses' && renderAddressesTab()}
+            {activeTab === 'notifications' && renderNotificationsTab()}
+          </div>
         </div>
 
-        {/* Main Content */}
-        <div style={mainContentStyle}>
-          {activeTab === 'profile' && renderProfileTab()}
-          {activeTab === 'orders' && renderOrdersTab()}
-          {activeTab === 'wishlist' && renderWishlistTab()}
-          {activeTab === 'addresses' && renderAddressesTab()}
-          {activeTab === 'notifications' && renderNotificationsTab()}
-        </div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+          }
+        `}</style>
       </div>
 
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `}</style>
-    </div>
+      {/* Address Modal */}
+      <AddressModal 
+        isOpen={addressModalOpen}
+        onClose={() => {
+          setAddressModalOpen(false);
+          setEditingAddress(null);
+        }}
+        userId={user?.uid}
+        addressData={editingAddress}
+        onSuccess={handleAddressModalSuccess}
+      />
+    </>
   );
 };
 
