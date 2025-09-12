@@ -5,6 +5,7 @@ import ProductCard from './components/ProductCard';
 import AuthModal from './components/AuthModal';
 import CartModal from './components/CartModal';
 import Checkout from './components/Checkout';
+import UserDashboard from './components/UserDashboard';
 import { testFirebaseConnection } from './firebase';
 import { productService } from './services/productService';
 import { authService } from './services/authService';
@@ -26,6 +27,9 @@ function App() {
   // Cart and Checkout state
   const [cartModalOpen, setCartModalOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  
+  // User Dashboard state
+  const [userDashboardOpen, setUserDashboardOpen] = useState(false);
 
   // Newsletter state
   const [email, setEmail] = useState('');
@@ -106,12 +110,29 @@ function App() {
 
   const handleLoginClick = () => {
     if (user) {
-      if (window.confirm(`Logout from ${user.email}?`)) {
-        authService.logout();
-      }
+      // If user is logged in, show dashboard
+      setUserDashboardOpen(true);
     } else {
       setAuthModalOpen(true);
     }
+  };
+
+  const handleDashboardLogout = async () => {
+    await authService.logout();
+    setUserDashboardOpen(false);
+    
+    // Show logout notification
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed; top: 100px; right: 20px; z-index: 1000;
+      background: #EF4444; color: white; padding: 1rem 1.5rem;
+      border-radius: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      font-weight: 600; animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = 'Successfully logged out!';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.remove(), 3000);
   };
 
   const handleCartClick = () => {
@@ -237,8 +258,20 @@ function App() {
   };
 
   const scrollToSection = (sectionId) => {
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
-  };
+  if (sectionId === 'home' || sectionId === 'top') {
+    // Scroll to top of page
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  } else {
+    // Scroll to specific section
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+};
 
   const getCartCount = () => {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -269,17 +302,17 @@ function App() {
 
   const testimonials = [
     {
-      name: "Sarah Mitchell",
+      name: "Ragam Jay",
       rating: 5,
       text: "AuraCampfit has completely transformed how I approach home fragrance for my clients. The quality is unmatched and the scents are so sophisticated. My clients always ask about what makes their spaces smell like their favorite boutique!"
     },
     {
-      name: "Marcus Chen",
+      name: "B Rohit",
       rating: 5,
-      text: "We've been using AuraCampfit products in our 5-star hotel for over two years. The consistency and longevity of their fragrances is exceptional. Guests frequently complement our hotel's unique scent."
+      text: "We've been using AuraCampfit products in our hotel for over three months. The consistency and longevity of their fragrances is exceptional. Guests frequently complement our hotel's unique scent."
     },
     {
-      name: "Emma Rodriguez",
+      name: "Sindhu D",
       rating: 5,
       text: "I'm extremely particular about scents, and AuraCampfit is the only brand I trust. The Vanilla is not a cloyouly-sweet scent - it creates such a warm, welcoming atmosphere in our home. Worth every penny!"
     }
@@ -303,8 +336,8 @@ function App() {
         onNavigate={scrollToSection}
       />
 
-  {/* Hero Section */}
-  <HeroSection />
+      {/* Hero Section */}
+      <HeroSection />
 
       {/* Why Choose CarPore Section */}
       <section id="why-choose" style={{
@@ -765,10 +798,10 @@ function App() {
 
               <h4 style={{ color: '#ffffff', marginBottom: '1rem' }}>Our Values</h4>
               <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8' }}>
-                <li>• 100% natural, non-toxic ingredients</li>
-                <li>• Premium quality and craftsmanship</li>
-                <li>• Eco-friendly and sustainable practices</li>
-                <li>• Customer satisfaction guaranteed</li>
+                <li> 100% natural, non-toxic ingredients</li>
+                <li> Premium quality and craftsmanship</li>
+                <li> Eco-friendly and sustainable practices</li>
+                <li> Customer satisfaction guaranteed</li>
               </ul>
             </div>
 
@@ -781,17 +814,17 @@ function App() {
                 Why Choose Us?
               </h3>
               <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8', marginBottom: '2rem' }}>
-                <li>• Unique, sophisticated scents</li>
-                <li>• Long-lasting performance up to 60 days</li>
-                <li>• Premium packaging and presentation</li>
-                <li>• Elegant, modern designs</li>
-                <li>• Trusted by thousands of happy customers</li>
+                <li> Unique, sophisticated scents</li>
+                <li> Long-lasting performance up to 60 days</li>
+                <li> Premium packaging and presentation</li>
+                <li> Elegant, modern designs</li>
+                <li> Trusted by thousands of happy customers</li>
               </ul>
 
               <h4 style={{ color: '#ffffff', marginBottom: '1rem' }}>Contact</h4>
               <p style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
                 Have questions or want to collaborate?<br />
-                Email us at <span style={{ color: '#D4AF37' }}>hello@carpore.com</span>
+                Email us at <span style={{ color: '#D4AF37' }}>customersupport@carpore.com</span>
               </p>
             </div>
           </div>
@@ -1118,13 +1151,13 @@ function App() {
                 lineHeight: '1.8'
               }}>
                 <p style={{ marginBottom: '0.5rem' }}>
-                  📍 123 Luxury Lane, Fragrance City, FC 12345
+                  📍 Carpore Industries, Pithapuram, Andhra Pradesh, 533450.
                 </p>
                 <p style={{ marginBottom: '0.5rem' }}>
-                  📞 +91 98565 67890
+                  📞 +91 96669 22228
                 </p>
                 <p style={{ marginBottom: '0.5rem' }}>
-                  ✉️ hello@carpore.com
+                  ✉️  customersupport@carpore.com
                 </p>
               </div>
             </div>
@@ -1212,6 +1245,14 @@ function App() {
           user={user}
         />
       )}
+
+      {/* User Dashboard Modal */}
+      <UserDashboard 
+        isOpen={userDashboardOpen}
+        onClose={() => setUserDashboardOpen(false)}
+        user={user}
+        onLogout={handleDashboardLogout}
+      />
 
       {/* Scroll animations */}
       <style>{`

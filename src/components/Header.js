@@ -1,6 +1,5 @@
-// src/components/Header.js
 import React, { useState } from 'react';
-import { ShoppingCart, User, Menu, X } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react';
 
 const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading, onNavigate }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -36,7 +35,9 @@ const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading, onNav
     fontWeight: '700',
     color: '#D4AF37',
     letterSpacing: '0.1em',
-    textDecoration: 'none'
+    textDecoration: 'none',
+    cursor: 'pointer', // Add cursor pointer
+    transition: 'all 0.3s ease' // Add transition
   };
 
   const navLinksStyle = {
@@ -77,27 +78,20 @@ const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading, onNav
     justifyContent: 'center'
   };
 
-  const cartButtonStyle = {
-    ...iconButtonStyle,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    border: '1px solid rgba(212, 175, 55, 0.3)'
-  };
-
-  const badgeStyle = {
-    position: 'absolute',
-    top: '-4px',
-    right: '-4px',
-    backgroundColor: '#D4AF37',
-    color: '#000000',
-    fontSize: '0.7rem',
-    borderRadius: '50%',
-    width: '18px',
-    height: '18px',
+  const userButtonStyle = {
+    background: user ? 'rgba(212, 175, 55, 0.1)' : 'none',
+    border: user ? '1px solid rgba(212, 175, 55, 0.3)' : 'none',
+    color: user ? '#D4AF37' : 'rgba(255, 255, 255, 0.9)',
+    cursor: 'pointer',
+    padding: user ? '6px 12px' : '8px',
+    borderRadius: user ? '25px' : '50%',
+    transition: 'all 0.3s ease',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: '600',
-    border: '2px solid rgba(0, 0, 0, 0.8)'
+    gap: '0.5rem',
+    fontSize: '0.9rem',
+    fontWeight: '500',
+    minHeight: '40px'
   };
 
   const mobileMenuStyle = {
@@ -121,21 +115,45 @@ const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading, onNav
     alignItems: 'center'
   };
 
-  const getUserDisplayText = () => {
-    if (userLoading) return '...';
+  const getUserDisplayInfo = () => {
+    if (userLoading) return { name: '...', avatar: '...' };
     if (user) {
       const name = user.displayName || user.email.split('@')[0];
-      return name.length > 10 ? name.substring(0, 10) + '...' : name;
+      const firstName = name.split(' ')[0];
+      const displayName = firstName.length > 8 ? firstName.substring(0, 8) + '...' : firstName;
+      const avatar = user.displayName ? user.displayName.split(' ').map(n => n[0]).join('') : user.email[0].toUpperCase();
+      return { name: displayName, avatar };
     }
-    return null; // Don't show text, just icon
+    return null;
   };
+
+  // Navigation handler function
+  const handleNavigation = (sectionId, closeMenu = false) => {
+    if (closeMenu) {
+      setMenuOpen(false);
+    }
+    onNavigate?.(sectionId);
+  };
+
+  const userInfo = getUserDisplayInfo();
 
   return (
     <header style={headerStyle}>
       <div style={navContainerStyle}>
         <div style={flexStyle}>
-          {/* Logo */}
-          <div style={logoStyle}>
+          {/* Logo - Now clickable and navigates to home */}
+          <div 
+            style={logoStyle}
+            onClick={() => handleNavigation('home')}
+            onMouseOver={(e) => {
+              e.target.style.color = '#F4D03F';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.color = '#D4AF37';
+              e.target.style.transform = 'scale(1)';
+            }}
+          >
             CARPORE
           </div>
 
@@ -143,81 +161,111 @@ const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading, onNav
           <nav style={{ display: window.innerWidth > 768 ? 'block' : 'none' }}>
             <ul style={navLinksStyle}>
               <li>
-                <a 
-                  href="#home" 
+                <span 
                   style={navLinkStyle}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onNavigate?.('home');
-                  }}
+                  onClick={() => handleNavigation('home')}
                   onMouseOver={(e) => e.target.style.color = '#D4AF37'}
                   onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
                 >
                   Home
-                </a>
+                </span>
               </li>
               <li>
-                <a 
-                  href="#products" 
+                <span 
                   style={navLinkStyle}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onNavigate?.('products');
-                  }}
+                  onClick={() => handleNavigation('products')}
                   onMouseOver={(e) => e.target.style.color = '#D4AF37'}
                   onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
                 >
                   Products
-                </a>
+                </span>
               </li>
               <li>
-                <a 
-                  href="#about" 
+                <span 
                   style={navLinkStyle}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onNavigate?.('about');
-                  }}
+                  onClick={() => handleNavigation('about')}
                   onMouseOver={(e) => e.target.style.color = '#D4AF37'}
                   onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
                 >
                   About
-                </a>
+                </span>
               </li>
               <li>
-                <a 
-                  href="#contact" 
+                <span 
                   style={navLinkStyle}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onNavigate?.('contact');
-                  }}
+                  onClick={() => handleNavigation('contact')}
                   onMouseOver={(e) => e.target.style.color = '#D4AF37'}
                   onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
                 >
                   Contact
-                </a>
+                </span>
               </li>
             </ul>
           </nav>
 
           {/* Actions */}
           <div style={actionsStyle}>
-            {/* User Button */}
+            {/* User Button - Enhanced */}
             <button 
-              style={iconButtonStyle} 
+              style={userButtonStyle} 
               onClick={onLoginClick}
-              title={user ? `Logged in as ${user.email}` : 'Click to login'}
+              title={user ? `View Dashboard - ${user.email}` : 'Click to login'}
               onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
-                e.target.style.color = '#D4AF37';
+                if (!user) {
+                  e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+                  e.target.style.color = '#D4AF37';
+                } else {
+                  e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.2)';
+                  e.target.style.borderColor = 'rgba(212, 175, 55, 0.5)';
+                }
               }}
               onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'transparent';
-                e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+                if (!user) {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+                } else {
+                  e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+                  e.target.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+                }
               }}
             >
-              <User size={20} />
+              {user && userInfo ? (
+                <>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#000000',
+                    fontSize: '0.75rem',
+                    fontWeight: '600'
+                  }}>
+                    {userInfo.avatar}
+                  </div>
+                  <span style={{ 
+                    display: window.innerWidth > 768 ? 'block' : 'none',
+                    maxWidth: '80px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {userInfo.name}
+                  </span>
+                  <ChevronDown size={14} style={{ opacity: 0.7 }} />
+                </>
+              ) : (
+                <>
+                  <User size={20} />
+                  <span style={{ 
+                    display: window.innerWidth > 768 ? 'block' : 'none' 
+                  }}>
+                    Login
+                  </span>
+                </>
+              )}
             </button>
 
             {/* Cart Button */}
@@ -296,59 +344,80 @@ const Header = ({ onLoginClick, cartCount, onCartClick, user, userLoading, onNav
         {menuOpen && (
           <div style={mobileMenuStyle}>
             <nav style={mobileNavStyle}>
-              <a 
-                href="#home" 
+              <span 
                 style={navLinkStyle} 
-                onClick={(e) => {
-                  e.preventDefault();
-                  onNavigate?.('home');
-                  setMenuOpen(false);
-                }}
+                onClick={() => handleNavigation('home', true)}
                 onMouseOver={(e) => e.target.style.color = '#D4AF37'}
                 onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
               >
                 Home
-              </a>
-              <a 
-                href="#products" 
+              </span>
+              <span 
                 style={navLinkStyle} 
-                onClick={(e) => {
-                  e.preventDefault();
-                  onNavigate?.('products');
-                  setMenuOpen(false);
-                }}
+                onClick={() => handleNavigation('products', true)}
                 onMouseOver={(e) => e.target.style.color = '#D4AF37'}
                 onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
               >
                 Products
-              </a>
-              <a 
-                href="#about" 
+              </span>
+              <span 
                 style={navLinkStyle} 
-                onClick={(e) => {
-                  e.preventDefault();
-                  onNavigate?.('about');
-                  setMenuOpen(false);
-                }}
+                onClick={() => handleNavigation('about', true)}
                 onMouseOver={(e) => e.target.style.color = '#D4AF37'}
                 onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
               >
                 About
-              </a>
-              <a 
-                href="#contact" 
+              </span>
+              <span 
                 style={navLinkStyle} 
-                onClick={(e) => {
-                  e.preventDefault();
-                  onNavigate?.('contact');
-                  setMenuOpen(false);
-                }}
+                onClick={() => handleNavigation('contact', true)}
                 onMouseOver={(e) => e.target.style.color = '#D4AF37'}
                 onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.9)'}
               >
                 Contact
-              </a>
+              </span>
             </nav>
+
+            {/* User info in mobile menu */}
+            {user && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                borderRadius: '12px',
+                border: '1px solid rgba(212, 175, 55, 0.2)',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#000000',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  margin: '0 auto 0.5rem'
+                }}>
+                  {userInfo?.avatar}
+                </div>
+                <p style={{
+                  color: '#ffffff',
+                  fontWeight: '500',
+                  marginBottom: '0.25rem'
+                }}>
+                  {user.displayName || 'User'}
+                </p>
+                <p style={{
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontSize: '0.85rem'
+                }}>
+                  {user.email}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
