@@ -9,15 +9,23 @@ import UserDashboard from './components/UserDashboard';
 import { testFirebaseConnection } from './firebase';
 import { productService } from './services/productService';
 import { authService } from './services/authService';
-import { Shield, Award, Clock, Star, Mail } from 'lucide-react';
-import './App.css';
+import { Shield, Award, Clock, Star, Mail, ChevronDown } from 'lucide-react';
+import './styles/App.css';
 
 function App() {
   const [cart, setCart] = useState([]);
   const [firebaseStatus, setFirebaseStatus] = useState('testing');
-  const [products, setProducts] = useState([]);
-  const [productsLoading, setProductsLoading] = useState(true);
-  const [productsError, setProductsError] = useState(null);
+  
+  // Separate state for categories and fragrances
+  const [categories, setCategories] = useState([]);
+  const [fragrances, setFragrances] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [fragrancesLoading, setFragrancesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState(null);
+  const [fragrancesError, setFragrancesError] = useState(null);
+  
+  // Selected fragrances for each category
+  const [selectedFragrances, setSelectedFragrances] = useState({});
   
   // Authentication state
   const [user, setUser] = useState(null);
@@ -35,7 +43,7 @@ function App() {
   const [email, setEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState('');
 
-  // Test Firebase connection and load products
+  // Test Firebase connection and load data
   useEffect(() => {
     console.log('Initializing CarPore...');
     
@@ -43,7 +51,8 @@ function App() {
       const isConnected = testFirebaseConnection();
       if (isConnected) {
         setFirebaseStatus('connected');
-        loadProducts();
+        loadCategories();
+        loadAllFragrances();
       } else {
         setFirebaseStatus('failed');
         console.log('Firebase connection failed');
@@ -64,20 +73,138 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Load products from Firebase
-  const loadProducts = async () => {
+  // Load categories from Firebase
+  
+  const loadCategories = async () => {
     try {
-      setProductsLoading(true);
-      setProductsError(null);
+      setCategoriesLoading(true);
+      setCategoriesError(null);
       
-      const fetchedProducts = await productService.getProducts();
-      setProducts(fetchedProducts);
+      const fetchedCategories = await productService.getProductCategories();
+      
+      // DEBUG: Log the fetched categories to console
+      console.log('🔍 DEBUG: Fetched categories:', fetchedCategories);
+      console.log('🔍 DEBUG: Categories length:', fetchedCategories.length);
+      
+      // Check each category structure
+      fetchedCategories.forEach((category, index) => {
+        console.log(`🔍 DEBUG: Category ${index + 1}:`, {
+          id: category.id,
+          name: category.name,
+          description: category.description,
+          fragrances: category.fragrances,
+          fragrancesCount: category.fragrances ? category.fragrances.length : 0
+        });
+        
+        if (category.fragrances && Array.isArray(category.fragrances)) {
+          console.log(`🔍 DEBUG: Category "${category.name}" fragrances:`, category.fragrances);
+        } else {
+          console.log(`❌ DEBUG: Category "${category.name}" has NO fragrances or invalid structure`);
+        }
+      });
+      
+      setCategories(fetchedCategories);
+      
+      // Initialize selected fragrances with first fragrance of each category
+      const initialSelected = {};
+      fetchedCategories.forEach(category => {
+        if (category.fragrances && category.fragrances.length > 0) {
+          initialSelected[category.id] = category.fragrances[0];
+          console.log(`🔍 DEBUG: Setting initial fragrance for ${category.name}:`, category.fragrances[0]);
+        } else {
+          console.log(`❌ DEBUG: No fragrances found for category: ${category.name}`);
+        }
+      });
+      
+      console.log('🔍 DEBUG: Initial selected fragrances:', initialSelected);
+      setSelectedFragrances(initialSelected);
       
     } catch (error) {
-      console.error('Failed to load products:', error);
-      setProductsError(error.message);
+      console.error('❌ DEBUG: Failed to load categories:', error);
+      setCategoriesError(error.message);
     } finally {
-      setProductsLoading(false);
+      setCategoriesLoading(false);
+    }
+  };
+
+
+  // Load all fragrances from Firebase
+  const loadAllFragrances = async () => {
+    try {
+      setFragrancesLoading(true);
+      setFragrancesError(null);
+      
+      // Get all fragrances from all categories
+      const allFragrances = [];
+      
+      // Try to get fragrances from Firebase
+      const loadAllFragrances = async () => {
+    try {
+      setFragrancesLoading(true);
+      setFragrancesError(null);
+      
+      console.log('🔍 DEBUG: Starting to load all fragrances...');
+      
+      // Get all fragrances from all categories
+      const allFragrances = [];
+      
+      // Try to get fragrances from Firebase
+      const fetchedCategories = await productService.getProductCategories();
+      console.log('🔍 DEBUG: Fetched categories for fragrances:', fetchedCategories);
+      
+      fetchedCategories.forEach(category => {
+        console.log(`🔍 DEBUG: Processing category "${category.name}" for fragrances...`);
+        
+        if (category.fragrances && Array.isArray(category.fragrances)) {
+          console.log(`🔍 DEBUG: Found ${category.fragrances.length} fragrances in category "${category.name}"`);
+          
+          category.fragrances.forEach(fragrance => {
+            const fragranceProduct = {
+              ...fragrance,
+              categoryName: category.name,
+              categoryId: category.id,
+              categoryImage: category.image,
+              // Create a product-like object
+              id: `${category.id}-${fragrance.id}`,
+              name: fragrance.name,
+              price: fragrance.price,
+              description: fragrance.description,
+              category: category.name,
+              scent: fragrance.name,
+              images: [{ src: category.image || '/images/placeholder.jpg' }],
+              rating: fragrance.rating || 4.8,
+              reviewCount: fragrance.reviewCount || Math.floor(Math.random() * 50) + 20,
+              status: 'active'
+            };
+            
+            allFragrances.push(fragranceProduct);
+            console.log(`🔍 DEBUG: Added fragrance product:`, fragranceProduct);
+          });
+        } else {
+          console.log(`❌ DEBUG: Category "${category.name}" has no fragrances or invalid structure`);
+        }
+      });
+      
+      console.log('🔍 DEBUG: Total fragrances created:', allFragrances.length);
+      console.log('🔍 DEBUG: All fragrances:', allFragrances);
+      
+      setFragrances(allFragrances);
+      
+    } catch (error) {
+      console.error('❌ DEBUG: Failed to load fragrances:', error);
+      setFragrancesError(error.message);
+    } finally {
+      setFragrancesLoading(false);
+    }
+  };
+      
+      setFragrances(allFragrances);
+      
+    } catch (error) {
+      console.error('Failed to load fragrances:', error);
+      setFragrancesError(error.message);
+    } finally {
+      setFragrancesLoading(false);
     }
   };
 
@@ -108,9 +235,34 @@ function App() {
     setTimeout(() => notification.remove(), 3000);
   };
 
+  const handleFragranceSelect = (categoryId, fragrance) => {
+    setSelectedFragrances(prev => ({
+      ...prev,
+      [categoryId]: fragrance
+    }));
+  };
+
+  const handleAddCategoryProductToCart = (category) => {
+    const selectedFragrance = selectedFragrances[category.id];
+    if (!selectedFragrance) return;
+
+    const product = {
+      id: `${category.id}-${selectedFragrance.id}`,
+      name: `${category.name} - ${selectedFragrance.name}`,
+      price: selectedFragrance.price,
+      description: selectedFragrance.description,
+      category: category.name,
+      scent: selectedFragrance.name,
+      images: [{ src: category.image || '/images/placeholder.jpg' }],
+      rating: selectedFragrance.rating || 4.8,
+      reviewCount: selectedFragrance.reviewCount || Math.floor(Math.random() * 50) + 20
+    };
+
+    handleAddToCart(product);
+  };
+
   const handleLoginClick = () => {
     if (user) {
-      // If user is logged in, show dashboard
       setUserDashboardOpen(true);
     } else {
       setAuthModalOpen(true);
@@ -121,7 +273,6 @@ function App() {
     await authService.logout();
     setUserDashboardOpen(false);
     
-    // Show logout notification
     const notification = document.createElement('div');
     notification.style.cssText = `
       position: fixed; top: 100px; right: 20px; z-index: 1000;
@@ -253,25 +404,19 @@ function App() {
     }
   };
 
-  const handleExploreClick = () => {
-    document.getElementById('why-choose')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const scrollToSection = (sectionId) => {
-  if (sectionId === 'home' || sectionId === 'top') {
-    // Scroll to top of page
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  } else {
-    // Scroll to specific section
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+    if (sectionId === 'home' || sectionId === 'top') {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    } else {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
     }
-  }
-};
+  };
 
   const getCartCount = () => {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -319,14 +464,7 @@ function App() {
   ];
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: `
-        radial-gradient(ellipse at center, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 30%, transparent 70%),
-        radial-gradient(ellipse at center, #1a1a1a 0%, #0d0d0d 70%, #000000 100%)
-      `,
-      color: '#ffffff'
-    }}>
+    <div className="app-container">
       <Header 
         cartCount={getCartCount()}
         onCartClick={handleCartClick}
@@ -336,70 +474,28 @@ function App() {
         onNavigate={scrollToSection}
       />
 
-      {/* Hero Section */}
       <HeroSection />
 
       {/* Why Choose CarPore Section */}
-      <section id="why-choose" style={{
-        padding: '6rem 0',
-        backgroundColor: 'transparent',
-        textAlign: 'center'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
-          <h2 style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: '600',
-            marginBottom: '1rem',
-            color: '#ffffff'
-          }}>
-            Why Choose <span style={{color: '#D4AF37'}}>Carpore</span>
+      <section id="why-choose" className="section section-center">
+        <div className="container">
+          <h2 className="section-title">
+            Why Choose <span className="section-title-accent">Carpore</span>
           </h2>
-          <p style={{
-            fontSize: '1.125rem',
-            color: 'rgba(255, 255, 255, 0.8)',
-            marginBottom: '4rem',
-            maxWidth: '600px',
-            margin: '0 auto 4rem'
-          }}>
+          <p className="section-subtitle">
             Experience the difference that premium quality and exceptional service makes in luxury home fragrance.
           </p>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '3rem',
-            marginTop: '3rem'
-          }}>
+          <div className="features-grid">
             {features.map((feature, index) => (
-              <div key={index} style={{
-                padding: '2rem',
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  backgroundColor: '#D4AF37',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 1.5rem',
-                  color: '#000000'
-                }}>
+              <div key={index} className="feature-card">
+                <div className="feature-icon">
                   {feature.icon}
                 </div>
-                <h3 style={{
-                  fontSize: '1.5rem',
-                  fontWeight: '600',
-                  marginBottom: '1rem',
-                  color: '#ffffff'
-                }}>
+                <h3 className="feature-title">
                   {feature.title}
                 </h3>
-                <p style={{
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  lineHeight: '1.6'
-                }}>
+                <p className="feature-description">
                   {feature.description}
                 </p>
               </div>
@@ -408,297 +504,208 @@ function App() {
         </div>
       </section>
 
-      {/* Featured Products Section */}
-      <section id="featured-products" style={{
-        padding: '6rem 0',
-        backgroundColor: 'transparent',
-        textAlign: 'center'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
-          <h2 style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: '600',
-            marginBottom: '1rem',
-            color: '#ffffff'
-          }}>
-            Featured <span style={{color: '#D4AF37'}}>Products</span>
+      {/* Featured Products Section - Categories with Fragrance Dropdowns */}
+      <section id="featured-products" className="section section-center">
+        <div className="container">
+          <h2 className="section-title">
+            Featured <span className="section-title-accent">Categories</span>
           </h2>
-          <p style={{
-            fontSize: '1.125rem',
-            color: 'rgba(255, 255, 255, 0.8)',
-            marginBottom: '3rem',
-            maxWidth: '600px',
-            margin: '0 auto 3rem'
-          }}>
-            Discover our handpicked selection of premium air fresheners, each crafted with meticulous attention to detail.
+          <p className="section-subtitle">
+            Choose from our premium categories and select your favorite fragrance.
           </p>
 
-          <button 
-            onClick={() => scrollToSection('products')}
-            style={{
-              background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
-              color: '#000000',
-              border: 'none',
-              padding: '0.75rem 2rem',
-              fontSize: '1rem',
-              fontWeight: '600',
-              borderRadius: '50px',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              marginBottom: '4rem'
-            }}
-          >
-            View All Products
-          </button>
-        </div>
-      </section>
-
-      {/* All Products Section */}
-      <section id="products" style={{ 
-        padding: '6rem 0',
-        backgroundColor: 'transparent',
-        color: '#ffffff'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
-          <h2 style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: '600',
-            marginBottom: '3rem',
-            textAlign: 'center',
-            color: '#ffffff'
-          }}>
-            All Products
-          </h2>
-
-          {productsLoading ? (
-            <div style={{textAlign: 'center', padding: '4rem 2rem'}}>
-              <div style={{
-                width: '3rem',
-                height: '3rem',
-                border: '4px solid #e5e5e5',
-                borderTop: '4px solid #D4AF37',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                margin: '0 auto 2rem'
-              }}></div>
-              <h3 style={{fontSize: '1.5rem', marginBottom: '1rem', color: '#D4AF37'}}>Loading Products...</h3>
-              <p style={{color: 'rgba(255,255,255,0.8)'}}>Please wait while we fetch our latest collection</p>
-              <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          {categoriesLoading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <h3 className="loading-title">Loading Categories...</h3>
             </div>
-          ) : productsError ? (
-            <div style={{textAlign: 'center', padding: '4rem 2rem'}}>
-              <div style={{
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#EF4444',
-                padding: '2rem',
-                borderRadius: '1rem',
-                maxWidth: '500px',
-                margin: '0 auto'
-              }}>
-                <h3 style={{marginBottom: '1rem'}}>Unable to Load Products</h3>
-                <p style={{marginBottom: '1.5rem'}}>{productsError}</p>
-                <button 
-                  onClick={loadProducts}
-                  style={{
-                    backgroundColor: '#D4AF37',
-                    color: '#000000',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '50px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
+          ) : categoriesError ? (
+            <div className="error-container">
+              <div className="error-box">
+                <h3 className="error-title">Unable to Load Categories</h3>
+                <p className="error-message">{categoriesError}</p>
+                <button className="retry-button" onClick={loadCategories}>
                   Retry Loading
                 </button>
               </div>
             </div>
-          ) : products.length === 0 ? (
-            <div style={{textAlign: 'center', color: 'rgba(255,255,255,0.7)', padding: '4rem 2rem'}}>
-              <h3 style={{fontSize: '1.5rem', marginBottom: '1rem', color: '#D4AF37'}}>No Products Available</h3>
+          ) : categories.length === 0 ? (
+            <div className="empty-container">
+              <h3 className="empty-title">No Categories Available</h3>
               <p>We're currently updating our inventory. Please check back soon!</p>
             </div>
           ) : (
-            <div style={{
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-              gap: '2rem',
-              padding: '2rem 0'
-            }}>
-              {products.map(product => (
-                <div
-                  key={product.id}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    backdropFilter: 'blur(20px)',
-                    borderRadius: '20px',
-                    padding: '1.5rem',
-                    border: '1px solid rgba(212, 175, 55, 0.2)',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-10px)';
-                    e.currentTarget.style.boxShadow = '0 20px 40px rgba(212, 175, 55, 0.2)';
-                    e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.4)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
-                    e.currentTarget.style.borderColor = 'rgba(212, 175, 55, 0.2)';
-                  }}
-                >
-                  {/* Floating glow effect */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '-50%',
-                    left: '-50%',
-                    width: '200%',
-                    height: '200%',
-                    background: 'radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%)',
-                    opacity: 0.5,
-                    pointerEvents: 'none'
-                  }}></div>
-
-                  {/* Product Image */}
-                  <div style={{
-                    position: 'relative',
-                    height: '200px',
-                    borderRadius: '15px',
-                    overflow: 'hidden',
-                    marginBottom: '1.5rem',
-                    background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05))'
-                  }}>
+            <div className="categories-grid">
+              {categories.map(category => (
+                <div key={category.id} className="category-card">
+                  <div className="category-image">
                     <img 
-                      src={product.images?.[0]?.src || '/images/placeholder.jpg'}
-                      alt={product.name}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '15px'
-                      }}
+                      src={category.image || '/images/placeholder.jpg'}
+                      alt={category.name}
                     />
-                    {product.category && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '1rem',
-                        left: '1rem',
-                        backgroundColor: 'rgba(212, 175, 55, 0.9)',
-                        color: '#000000',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '20px',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
-                        backdropFilter: 'blur(10px)'
-                      }}>
-                        {product.category}
+                  </div>
+
+                  <div className="category-info">
+                    <h3 className="category-title">
+                      {category.name}
+                    </h3>
+                    
+                    <p className="category-description">
+                      {category.description}
+                    </p>
+                  </div>
+
+                  {category.fragrances && category.fragrances.length > 0 && (
+                    <div className="fragrance-dropdown-container">
+                      <label className="fragrance-dropdown-label">
+                        Select Fragrance:
+                      </label>
+                      <div className="fragrance-dropdown-wrapper">
+                        <select
+                          className="fragrance-dropdown"
+                          value={selectedFragrances[category.id]?.id || ''}
+                          onChange={(e) => {
+                            const selectedFragrance = category.fragrances.find(f => f.id === e.target.value);
+                            if (selectedFragrance) {
+                              handleFragranceSelect(category.id, selectedFragrance);
+                            }
+                          }}
+                        >
+                          {category.fragrances.map(fragrance => (
+                            <option 
+                              key={fragrance.id} 
+                              value={fragrance.id}
+                            >
+                              {fragrance.name} - ₹{fragrance.price}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={20} className="dropdown-icon" />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedFragrances[category.id] && (
+                    <div className="selected-fragrance-details">
+                      <p className="selected-fragrance-description">
+                        {selectedFragrances[category.id].description}
+                      </p>
+                      <p className="selected-fragrance-price">
+                        ₹{selectedFragrances[category.id].price}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <button
+                    className={`btn btn-primary btn-full-width ${!selectedFragrances[category.id] ? 'btn-disabled' : ''}`}
+                    onClick={() => handleAddCategoryProductToCart(category)}
+                    disabled={!selectedFragrances[category.id]}
+                  >
+                    🛒 Add to Cart
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button className="btn-secondary" onClick={() => scrollToSection('products')}>
+            View All Fragrances
+          </button>
+        </div>
+      </section>
+
+      {/* All Products Section - Individual Fragrances */}
+      <section id="products" className="section">
+        <div className="container">
+          <h2 className="section-title section-center">
+            All Fragrances
+          </h2>
+
+          {fragrancesLoading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <h3 className="loading-title">Loading Fragrances...</h3>
+              <p className="loading-subtitle">Please wait while we fetch our complete collection</p>
+            </div>
+          ) : fragrancesError ? (
+            <div className="error-container">
+              <div className="error-box">
+                <h3 className="error-title">Unable to Load Fragrances</h3>
+                <p className="error-message">{fragrancesError}</p>
+                <button className="retry-button" onClick={loadAllFragrances}>
+                  Retry Loading
+                </button>
+              </div>
+            </div>
+          ) : fragrances.length === 0 ? (
+            <div className="empty-container">
+              <h3 className="empty-title">No Fragrances Available</h3>
+              <p>We're currently updating our fragrance collection. Please check back soon!</p>
+            </div>
+          ) : (
+            <div className="fragrances-grid">
+              {fragrances.map(fragrance => (
+                <div key={fragrance.id} className="fragrance-card">
+                  <div className="fragrance-card-glow"></div>
+
+                  <div className="fragrance-image">
+                    <img 
+                      src={fragrance.images?.[0]?.src || '/images/placeholder.jpg'}
+                      alt={fragrance.name}
+                    />
+                    {fragrance.category && (
+                      <div className="fragrance-category-badge">
+                        {fragrance.category}
                       </div>
                     )}
                   </div>
 
-                  {/* Product Info */}
-                  <div style={{ position: 'relative', zIndex: 2 }}>
-                    <h3 style={{
-                      fontSize: '1.25rem',
-                      fontWeight: '600',
-                      marginBottom: '0.5rem',
-                      color: '#ffffff'
-                    }}>
-                      {product.name}
+                  <div className="fragrance-info">
+                    <h3 className="fragrance-title">
+                      {fragrance.name}
                     </h3>
                     
-                    {product.scent && (
-                      <p style={{
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        fontSize: '0.9rem',
-                        marginBottom: '0.75rem'
-                      }}>
-                        {product.scent} Scent
+                    {fragrance.scent && (
+                      <p className="fragrance-scent">
+                        {fragrance.scent} Fragrance
                       </p>
                     )}
                     
-                    {product.rating && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        marginBottom: '1rem'
-                      }}>
-                        <div style={{ display: 'flex' }}>
+                    {fragrance.rating && (
+                      <div className="fragrance-rating">
+                        <div className="fragrance-stars">
                           {[...Array(5)].map((_, i) => (
-                            <span key={i} style={{
-                              color: i < Math.floor(product.rating) ? '#D4AF37' : 'rgba(255,255,255,0.3)',
-                              fontSize: '1rem'
-                            }}>
+                            <span 
+                              key={i} 
+                              className={`fragrance-star ${i < Math.floor(fragrance.rating) ? 'fragrance-star-filled' : 'fragrance-star-empty'}`}
+                            >
                               ★
                             </span>
                           ))}
                         </div>
-                        {product.reviewCount && (
-                          <span style={{
-                            fontSize: '0.85rem',
-                            color: 'rgba(255, 255, 255, 0.6)'
-                          }}>
-                            ({product.reviewCount})
+                        {fragrance.reviewCount && (
+                          <span className="fragrance-review-count">
+                            ({fragrance.reviewCount})
                           </span>
                         )}
                       </div>
                     )}
                     
-                    {product.description && (
-                      <p style={{
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        fontSize: '0.9rem',
-                        lineHeight: '1.4',
-                        marginBottom: '1.5rem'
-                      }}>
-                        {product.description}
+                    {fragrance.description && (
+                      <p className="fragrance-description">
+                        {fragrance.description}
                       </p>
                     )}
                     
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <span style={{
-                        fontSize: '1.5rem',
-                        fontWeight: 'bold',
-                        color: '#D4AF37'
-                      }}>
-                        ₹{product.price}
+                    <div className="fragrance-footer">
+                      <span className="fragrance-price">
+                        ₹{fragrance.price}
                       </span>
                       <button
+                        className="btn btn-primary"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAddToCart(product);
-                        }}
-                        style={{
-                          background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
-                          color: '#000000',
-                          padding: '0.75rem 1.5rem',
-                          borderRadius: '25px',
-                          border: 'none',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          fontSize: '0.9rem',
-                          transition: 'all 0.3s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem'
-                        }}
-                        onMouseOver={(e) => {
-                          e.target.style.transform = 'scale(1.05)';
-                          e.target.style.boxShadow = '0 5px 15px rgba(212, 175, 55, 0.4)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.target.style.transform = 'scale(1)';
-                          e.target.style.boxShadow = 'none';
+                          handleAddToCart(fragrance);
                         }}
                       >
                         🛒 Add to Cart
@@ -710,46 +717,22 @@ function App() {
             </div>
           )}
 
-          {/* Cart Summary */}
           {cart.length > 0 && (
-            <div style={{
-              marginTop: '4rem',
-              padding: '2rem',
-              backgroundColor: 'rgba(212, 175, 55, 0.08)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
-              borderRadius: '20px',
-              textAlign: 'center',
-              maxWidth: '500px',
-              margin: '4rem auto 0'
-            }}>
-              <h3 style={{color: '#D4AF37', marginBottom: '1rem', fontSize: '1.5rem'}}>
+            <div className="cart-summary">
+              <h3 className="cart-summary-title">
                 🛒 Cart Summary
               </h3>
-              <div style={{marginBottom: '1.5rem'}}>
-                <p style={{fontSize: '1.125rem', marginBottom: '0.5rem', color: '#fff'}}>
+              <div className="cart-summary-details">
+                <p className="cart-summary-count">
                   {getCartCount()} {getCartCount() === 1 ? 'item' : 'items'}
                 </p>
-                <p style={{fontSize: '2rem', fontWeight: 'bold', color: '#D4AF37'}}>
+                <p className="cart-summary-total">
                   ₹{getCartTotal().toFixed(2)}
                 </p>
               </div>
               <button
+                className="cart-summary-button"
                 onClick={handleProceedToCheckout}
-                style={{
-                  background: 'linear-gradient(45deg, #D4AF37, #F4D03F)',
-                  color: '#000000',
-                  padding: '1rem 2rem',
-                  borderRadius: '50px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '1.125rem',
-                  width: '100%',
-                  transition: 'transform 0.2s ease'
-                }}
-                onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
               >
                 Proceed to Checkout →
               </button>
@@ -759,45 +742,23 @@ function App() {
       </section>
 
       {/* About CarPore Section */}
-      <section id="about" style={{
-        padding: '6rem 0',
-        backgroundColor: 'transparent'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
-          <h2 style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: '600',
-            marginBottom: '3rem',
-            textAlign: 'center',
-            color: '#ffffff'
-          }}>
-            About <span style={{color: '#D4AF37'}}>CarPore</span>
+      <section id="about" className="section">
+        <div className="container">
+          <h2 className="section-title section-center">
+            About <span className="section-title-accent">CarPore</span>
           </h2>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '4rem',
-            alignItems: 'start'
-          }}>
+          <div className="about-grid">
             <div>
-              <h3 style={{
-                color: '#D4AF37',
-                fontSize: '1.5rem',
-                marginBottom: '1rem'
-              }}>
+              <h3 className="about-section-title">
                 Our Story
               </h3>
-              <p style={{
-                color: 'rgba(255, 255, 255, 0.8)',
-                lineHeight: '1.6',
-                marginBottom: '2rem'
-              }}>
+              <p className="about-text">
                 Founded by fragrance enthusiasts, CarPore began with a simple vision to bring luxury home fragrance to beautiful as they are effective. We believe that scent is a powerful part of your environment, and our products are designed to enhance your everyday living with a lasting impression.
               </p>
 
-              <h4 style={{ color: '#ffffff', marginBottom: '1rem' }}>Our Values</h4>
-              <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8' }}>
+              <h4 className="about-subtitle">Our Values</h4>
+              <ul className="about-list">
                 <li> 100% natural, non-toxic ingredients</li>
                 <li> Premium quality and craftsmanship</li>
                 <li> Eco-friendly and sustainable practices</li>
@@ -806,14 +767,10 @@ function App() {
             </div>
 
             <div>
-              <h3 style={{
-                color: '#D4AF37',
-                fontSize: '1.5rem',
-                marginBottom: '1rem'
-              }}>
+              <h3 className="about-section-title">
                 Why Choose Us?
               </h3>
-              <ul style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.8', marginBottom: '2rem' }}>
+              <ul className="about-list">
                 <li> Unique, sophisticated scents</li>
                 <li> Long-lasting performance up to 60 days</li>
                 <li> Premium packaging and presentation</li>
@@ -821,10 +778,10 @@ function App() {
                 <li> Trusted by thousands of happy customers</li>
               </ul>
 
-              <h4 style={{ color: '#ffffff', marginBottom: '1rem' }}>Contact</h4>
-              <p style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+              <h4 className="about-subtitle">Contact</h4>
+              <p className="about-contact">
                 Have questions or want to collaborate?<br />
-                Email us at <span style={{ color: '#D4AF37' }}>customersupport@carpore.com</span>
+                Email us at <span className="about-contact-email">customersupport@carpore.com</span>
               </p>
             </div>
           </div>
@@ -832,77 +789,31 @@ function App() {
       </section>
 
       {/* Testimonials Section */}
-      <section style={{
-        padding: '6rem 0',
-        backgroundColor: 'transparent'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
-          <h2 style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: '600',
-            marginBottom: '1rem',
-            textAlign: 'center',
-            color: '#ffffff'
-          }}>
-            What Our <span style={{color: '#D4AF37'}}>Customers Say</span>
+      <section className="section">
+        <div className="container">
+          <h2 className="section-title section-center">
+            What Our <span className="section-title-accent">Customers Say</span>
           </h2>
-          <p style={{
-            fontSize: '1.125rem',
-            color: 'rgba(255, 255, 255, 0.8)',
-            marginBottom: '4rem',
-            textAlign: 'center'
-          }}>
+          <p className="section-subtitle">
             Join thousands of satisfied customers who have elevated their spaces with our premium fragrances.
           </p>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-            gap: '2rem',
-            marginBottom: '3rem'
-          }}>
+          <div className="testimonials-grid">
             {testimonials.map((testimonial, index) => (
-              <div key={index} style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                padding: '2rem',
-                borderRadius: '1rem',
-                border: '1px solid rgba(212, 175, 55, 0.1)'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  marginBottom: '1rem'
-                }}>
+              <div key={index} className="testimonial-card">
+                <div className="testimonial-stars">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star key={i} size={16} fill="#D4AF37" color="#D4AF37" />
                   ))}
                 </div>
-                <p style={{
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  fontStyle: 'italic',
-                  lineHeight: '1.6',
-                  marginBottom: '1.5rem'
-                }}>
+                <p className="testimonial-text">
                   "{testimonial.text}"
                 </p>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem'
-                }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    backgroundColor: '#D4AF37',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#000000',
-                    fontWeight: '600'
-                  }}>
+                <div className="testimonial-author">
+                  <div className="testimonial-avatar">
                     {testimonial.name.split(' ').map(n => n[0]).join('')}
                   </div>
-                  <span style={{ color: '#ffffff', fontWeight: '600' }}>
+                  <span className="testimonial-name">
                     {testimonial.name}
                   </span>
                 </div>
@@ -910,27 +821,13 @@ function App() {
             ))}
           </div>
 
-          <div style={{
-            textAlign: 'center',
-            padding: '2rem',
-            backgroundColor: 'rgba(212, 175, 55, 0.1)',
-            borderRadius: '1rem',
-            border: '1px solid rgba(212, 175, 55, 0.2)'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              marginBottom: '0.5rem'
-            }}>
+          <div className="testimonials-summary">
+            <div className="testimonials-summary-stars">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} size={20} fill="#D4AF37" color="#D4AF37" />
               ))}
             </div>
-            <span style={{
-              color: '#ffffff',
-              fontWeight: '600',
-              fontSize: '1.125rem'
-            }}>
+            <span className="testimonials-summary-text">
               4.9/5 from 2,500+ reviews
             </span>
           </div>
@@ -938,282 +835,79 @@ function App() {
       </section>
 
       {/* Newsletter Section */}
-      <section id="contact" style={{
-        padding: '4rem 0',
-        background: 'linear-gradient(135deg, #D4AF37, #F4D03F)',
-        color: '#000000',
-        textAlign: 'center'
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 2rem' }}>
-          <div style={{
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            backgroundColor: '#000000',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 2rem'
-          }}>
+      <section id="contact" className="newsletter-section">
+        <div className="newsletter-container">
+          <div className="newsletter-icon">
             <Mail color="#D4AF37" size={28} />
           </div>
 
-          <h2 style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: '600',
-            marginBottom: '1rem'
-          }}>
+          <h2 className="newsletter-title">
             Stay Updated with Exclusive Offers
           </h2>
           
-          <p style={{
-            fontSize: '1.125rem',
-            marginBottom: '2.5rem',
-            opacity: 0.8,
-            maxWidth: '500px',
-            margin: '0 auto 2.5rem'
-          }}>
+          <p className="newsletter-subtitle">
             Be the first to know about new fragrance collections, special deals, and exclusive member perks.
           </p>
 
-          <form onSubmit={handleNewsletterSubmit} style={{
-            display: 'flex',
-            maxWidth: '500px',
-            margin: '0 auto',
-            gap: '1rem',
-            flexWrap: 'wrap'
-          }}>
+          <form onSubmit={handleNewsletterSubmit} className="newsletter-form">
             <input
               type="email"
               placeholder="Enter your email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{
-                flex: '1',
-                minWidth: '250px',
-                padding: '1rem 1.5rem',
-                border: 'none',
-                borderRadius: '50px',
-                fontSize: '1rem',
-                backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                color: '#000000'
-              }}
+              className="newsletter-input"
             />
-            <button
-              type="submit"
-              style={{
-                background: '#000000',
-                color: '#D4AF37',
-                border: 'none',
-                padding: '1rem 2rem',
-                borderRadius: '50px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.background = '#1a1a1a';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.background = '#000000';
-              }}
-            >
+            <button type="submit" className="newsletter-button">
               Subscribe →
             </button>
           </form>
 
           {newsletterStatus && (
-            <p style={{
-              marginTop: '1rem',
-              color: '#000000',
-              fontWeight: '600'
-            }}>
+            <p className="newsletter-status">
               {newsletterStatus}
             </p>
           )}
         </div>
       </section>
-
       {/* Footer */}
-      <footer style={{
-        backgroundColor: '#0d1117',
-        color: '#ffffff',
-        padding: '3rem 0 1rem'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '3rem',
-            marginBottom: '2rem'
-          }}>
-            {/* Brand Section */}
+      <footer className="footer">
+        <div className="container">
+          <div className="footer-content">
             <div>
-              <h3 style={{
-                color: '#D4AF37',
-                fontSize: '1.8rem',
-                fontWeight: '700',
-                marginBottom: '1rem',
-                letterSpacing: '0.1em'
-              }}>
+              <h3 className="footer-brand-title">
                 CARPORE
               </h3>
-              <p style={{
-                color: 'rgba(255, 255, 255, 0.8)',
-                lineHeight: '1.6',
-                marginBottom: '1.5rem'
-              }}>
+              <p className="footer-brand-description">
                 Transform your spaces with premium luxury air fresheners crafted from the finest natural ingredients. Our mission is elevating everyday living with sophisticated scents.
               </p>
-              <div style={{
-                display: 'flex',
-                gap: '1rem'
-              }}>
-                <span style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#D4AF37';
-                  e.target.style.color = '#000000';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
-                  e.target.style.color = '#ffffff';
-                }}>
-                  f
-                </span>
-                <span style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#D4AF37';
-                  e.target.style.color = '#000000';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
-                  e.target.style.color = '#ffffff';
-                }}>
-                  @
-                </span>
-                <span style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#D4AF37';
-                  e.target.style.color = '#000000';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
-                  e.target.style.color = '#ffffff';
-                }}>
-                  in
-                </span>
+              <div className="footer-social">
+                <span className="footer-social-icon">f</span>
+                <span className="footer-social-icon">@</span>
+                <span className="footer-social-icon">in</span>
               </div>
             </div>
 
-            {/* Contact Section */}
             <div>
-              <h4 style={{
-                color: '#ffffff',
-                fontSize: '1.2rem',
-                marginBottom: '1rem'
-              }}>
+              <h4 className="footer-contact-title">
                 Contact Us
               </h4>
-              <div style={{
-                color: 'rgba(255, 255, 255, 0.8)',
-                lineHeight: '1.8'
-              }}>
-                <p style={{ marginBottom: '0.5rem' }}>
-                  📍 Carpore Industries, Pithapuram, Andhra Pradesh, 533450.
-                </p>
-                <p style={{ marginBottom: '0.5rem' }}>
-                  📞 +91 96669 22228
-                </p>
-                <p style={{ marginBottom: '0.5rem' }}>
-                  ✉️  customersupport@carpore.com
-                </p>
+              <div className="footer-contact-info">
+                <p>📍 Carpore Industries, Pithapuram, Andhra Pradesh, 533450.</p>
+                <p>📞 +91 96669 22228</p>
+                <p>✉️  customersupport@carpore.com</p>
               </div>
             </div>
           </div>
 
-          {/* Footer Bottom */}
-          <div style={{
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            paddingTop: '2rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1rem'
-          }}>
-            <p style={{
-              color: 'rgba(255, 255, 255, 0.6)',
-              fontSize: '0.875rem'
-            }}>
+          <div className="footer-bottom">
+            <p className="footer-copyright">
               © 2024 CarPore. All rights reserved.
             </p>
-            <div style={{
-              display: 'flex',
-              gap: '2rem',
-              flexWrap: 'wrap'
-            }}>
-              <span style={{
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-                transition: 'color 0.3s ease'
-              }}
-              onMouseOver={(e) => e.target.style.color = '#D4AF37'}
-              onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.6)'}>
-                Privacy Policy
-              </span>
-              <span style={{
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-                transition: 'color 0.3s ease'
-              }}
-              onMouseOver={(e) => e.target.style.color = '#D4AF37'}
-              onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.6)'}>
-                Terms of Service
-              </span>
-              <span style={{
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-                transition: 'color 0.3s ease'
-              }}
-              onMouseOver={(e) => e.target.style.color = '#D4AF37'}
-              onMouseOut={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.6)'}>
-                Cookie Policy
-              </span>
+            <div className="footer-links">
+              <span className="footer-link">Privacy Policy</span>
+              <span className="footer-link">Terms of Service</span>
+              <span className="footer-link">Cookie Policy</span>
             </div>
           </div>
         </div>
@@ -1253,27 +947,6 @@ function App() {
         user={user}
         onLogout={handleDashboardLogout}
       />
-
-      {/* Scroll animations */}
-      <style>{`
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        
-        html {
-          scroll-behavior: smooth;
-        }
-        
-        section {
-          scroll-margin-top: 100px;
-        }
-      `}</style>
     </div>
   );
 }
